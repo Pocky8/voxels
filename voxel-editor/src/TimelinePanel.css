@@ -1,0 +1,133 @@
+.timeline {
+  position: fixed;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  height: 112px;
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(34, 22, 47, 0.08);
+  backdrop-filter: blur(12px);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  z-index: 90;
+}
+
+.timeline__transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline__btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 22, 47, 0.1);
+  background: white;
+  color: rgba(34, 22, 47, 0.75);
+  cursor: pointer;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.timeline__btn--play {
+  width: 36px;
+  font-size: 12px;
+}
+
+.timeline__btn--play.active {
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  border-color: transparent;
+  color: white;
+}
+
+.timeline__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.timeline__counter {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: rgba(34, 22, 47, 0.55);
+  min-width: 52px;
+}
+
+.timeline__frames {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 4px;
+  scrollbar-width: thin;
+}
+
+.timeline__frame {
+  flex: 0 0 52px;
+  height: 52px;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 22, 47, 0.1);
+  background: #f8f6fc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.timeline__frame.active {
+  border-color: #8b7cf8;
+  background: rgba(139, 124, 248, 0.14);
+  transform: translateY(-2px);
+}
+
+.timeline__frame-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(34, 22, 47, 0.8);
+}
+
+.timeline__frame-count {
+  font-size: 10px;
+  color: rgba(34, 22, 47, 0.4);
+}
+
+.timeline__frame--add {
+  font-size: 22px;
+  color: rgba(34, 22, 47, 0.35);
+}
+
+.timeline__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.timeline__stat {
+  font-size: 11px;
+  color: rgba(34, 22, 47, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline__action {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 22, 47, 0.1);
+  background: white;
+  font-size: 11px;
+  color: rgba(34, 22, 47, 0.65);
+  cursor: pointer;
+}
+
+.timeline__action:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
