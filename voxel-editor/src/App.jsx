@@ -25,6 +25,8 @@ export default function App() {
   const setShowGrid = useVoxelStore((s) => s.setShowGrid)
   const setIsExporting = useVoxelStore((s) => s.setIsExporting)
   const stopPlayback = useVoxelStore((s) => s.stopPlayback)
+  const undo = useVoxelStore((s) => s.undo)
+  const redo = useVoxelStore((s) => s.redo)
 
   const [showVoxelizer, setShowVoxelizer] = useState(false)
   const [showGreenscreen, setShowGreenscreen] = useState(false)
@@ -47,6 +49,36 @@ export default function App() {
     window.addEventListener('pointerup', stopDragPaint)
     return () => window.removeEventListener('pointerup', stopDragPaint)
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target
+      const isTyping = target instanceof HTMLElement && (
+        target.isContentEditable ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+      )
+      if (isTyping || (!e.ctrlKey && !e.metaKey)) return
+
+      const key = e.key.toLowerCase()
+      if (key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        redo()
+        return
+      }
+      if (key === 'z') {
+        e.preventDefault()
+        undo()
+        return
+      }
+      if (key === 'y') {
+        e.preventDefault()
+        redo()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [redo, undo])
 
   const handleFloorClick = useCallback((e) => {
     if (activeTool !== 'draw' || isPlaying || isExporting || e.delta > 3) return
@@ -83,7 +115,7 @@ export default function App() {
     floorDragPaintRef.current = false
   }, [])
 
-  const handleGreenscreenExport = useCallback(async ({ plane, format, onProgress }) => {
+  const handleGreenscreenExport = useCallback(async ({ plane, format, onProgress, logger }) => {
     stopPlayback()
     setIsExporting(true)
     setShowGrid(false)
@@ -94,6 +126,7 @@ export default function App() {
         fps,
         format,
         onProgress,
+        logger,
       })
     } finally {
       setShowGrid(true)
@@ -116,10 +149,10 @@ export default function App() {
           camera={{ position: [8, 8, 8], fov: 50 }}
           gl={{ antialias: true, toneMapping: 0, preserveDrawingBuffer: true }}
         >
-          <color attach="background" args={['#ece8f4']} />
+          <color attach="background" args={['#f4f6f8']} />
 
-          <ambientLight intensity={2.5} />
-          <directionalLight position={[10, 14, 8]} intensity={2.0} />
+          <ambientLight intensity={1.2} />
+          <directionalLight position={[10, 14, 8]} intensity={2.4} />
           <directionalLight position={[-6, 4, -8]} intensity={1.0} color="#c0d8ff" />
           <pointLight position={[0, 8, 0]} intensity={3.0} />
 
@@ -142,7 +175,7 @@ export default function App() {
           </mesh>
 
           {showGrid && (
-            <gridHelper args={[40, 40, '#d8d2e8', '#ebe6f4']} position={[0, -0.5, 0]} />
+            <gridHelper args={[40, 40, '#7b8797', '#b2bcc8']} position={[0, -0.5, 0]} />
           )}
 
           {!isExporting && <SceneControls paintMode={paintMode} />}
@@ -178,7 +211,6 @@ export default function App() {
           onClose={() => setShowGreenscreen(false)}
           onExport={async (opts) => {
             await handleGreenscreenExport(opts)
-            setShowGreenscreen(false)
           }}
         />
       )}

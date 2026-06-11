@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 :root {
-  --ui-bg: #f3f0fa;
+  --ui-bg: #f4f6f8;
   --ui-text: #1f1630;
   --ui-muted: rgba(31, 22, 48, 0.55);
   --ui-border: rgba(31, 22, 48, 0.1);
@@ -31,7 +31,7 @@ html, body, #root {
   top: 0;
   right: 0;
   bottom: 112px;
-  background: #ece8f4;
+  background: #f4f6f8;
 }
 
 .canvas-wrapper canvas {
@@ -51,5 +51,41 @@ html, body, #root {
   color: var(--ui-muted);
   pointer-events: none;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(31, 22, 48, 0.06);
+  animation: hint-pop 0.22s ease-out;
+}
+
+@keyframes hint-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (max-width: 760px) {
+  .canvas-wrapper {
+    left: 0;
+    top: 116px;
+    bottom: 148px;
+  }
+
+  .canvas-hint {
+    bottom: 10px;
+    max-width: calc(100vw - 24px);
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

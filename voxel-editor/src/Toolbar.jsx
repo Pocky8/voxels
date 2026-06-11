@@ -14,9 +14,15 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen }) {
   const activeTool = useVoxelStore((s) => s.activeTool)
   const activeColor = useVoxelStore((s) => s.activeColor)
   const continuousDraw = useVoxelStore((s) => s.continuousDraw)
+  const mirrorX = useVoxelStore((s) => s.mirrorX)
+  const past = useVoxelStore((s) => s.past)
+  const future = useVoxelStore((s) => s.future)
   const setActiveTool = useVoxelStore((s) => s.setActiveTool)
   const setActiveColor = useVoxelStore((s) => s.setActiveColor)
   const setContinuousDraw = useVoxelStore((s) => s.setContinuousDraw)
+  const setMirrorX = useVoxelStore((s) => s.setMirrorX)
+  const undo = useVoxelStore((s) => s.undo)
+  const redo = useVoxelStore((s) => s.redo)
   const clearCanvas = useVoxelStore((s) => s.clearCanvas)
   const frames = useVoxelStore((s) => s.frames)
   const isExporting = useVoxelStore((s) => s.isExporting)
@@ -64,6 +70,14 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen }) {
             onChange={(e) => setContinuousDraw(e.target.checked)}
           />
           <span>Continuous brush</span>
+        </label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={mirrorX}
+            onChange={(e) => setMirrorX(e.target.checked)}
+          />
+          <span>Mirror X</span>
         </label>
       </section>
 
@@ -126,6 +140,28 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen }) {
         >
           {exporting ? 'Exporting GLTF…' : 'GLTF / GLB'}
         </button>
+      </section>
+
+      <section className="sidebar__panel">
+        <p className="sidebar__label">History</p>
+        <div className="sidebar__action-row">
+          <button
+            type="button"
+            className="sidebar__action"
+            onClick={undo}
+            disabled={past.length === 0 || isExporting}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="sidebar__action"
+            onClick={redo}
+            disabled={future.length === 0 || isExporting}
+          >
+            Redo
+          </button>
+        </div>
       </section>
 
       <section className="sidebar__panel">

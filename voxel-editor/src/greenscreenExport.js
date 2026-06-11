@@ -108,31 +108,117 @@ export function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url)
 }
 
-export async function recordWebM(canvas, frameCount, fps, onFrame) {
-  const stream = canvas.captureStream(fps)
-  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+export function getVideoMimeType(format, logger) {
+  if (format === 'mp4') {
+    const mp4Types = [
+      'video/mp4;codecs="avc1.42E01E"',
+      'video/mp4;codecs=h264',
+      'video/mp4',
+    ]
+    const tested = mp4Types.map((type) => ({
+      type,
+      supported: MediaRecorder.isTypeSupported(type),
+    }))
+    const selected = tested.find((item) => item.supported)?.type
+    logger?.info('mime type detection', { format, tested, selected })
+    return selected
+  }
+
+  const selected = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
     ? 'video/webm;codecs=vp9'
     : 'video/webm'
+  logger?.info('mime type detection', { format, selected })
+  return selected
+}
+
+export async function recordVideo(canvas, frameCount, fps, format, onFrame, logger) {
+  if (typeof MediaRecorder === 'undefined') {
+    throw new Error('Video export is not supported by this browser.')
+  }
+
+  const stream = canvas.captureStream(fps)
+  const tracks = stream.getTracks()
+  logger?.info('capture stream created', {
+    fps,
+    trackCount: tracks.length,
+    trackStates: tracks.map((track) => ({
+      kind: track.kind,
+      muted: track.muted,
+      readyState: track.readyState,
+    })),
+  })
+
+  const mimeType = getVideoMimeType(format, logger)
+
+  if (!mimeType) {
+    throw new Error('MP4 export is not supported by this browser. Try PNG sequence instead.')
+  }
 
   const recorder = new MediaRecorder(stream, { mimeType })
   const chunks = []
+  const chunkSizes = []
 
   recorder.ondataavailable = (e) => {
-    if (e.data.size > 0) chunks.push(e.data)
+    const size = e.data?.size ?? 0
+    chunkSizes.push(size)
+    logger?.info('recorder data available', {
+      size,
+      type: e.data?.type || '',
+      recorderState: recorder.state,
+    })
+    if (size > 0) chunks.push(e.data)
   }
 
-  const done = new Promise((resolve) => {
-    recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }))
+  const done = new Promise((resolve, reject) => {
+    recorder.onerror = (e) => {
+      const message = e.error?.message || e.message || 'MediaRecorder failed'
+      logger?.error('recorder error', { message, recorderState: recorder.state })
+      reject(new Error(message))
+    }
+    recorder.onstart = () => {
+      logger?.info('recorder started', { recorderState: recorder.state })
+    }
+    recorder.onpause = () => {
+      logger?.info('recorder paused', { recorderState: recorder.state })
+    }
+    recorder.onresume = () => {
+      logger?.info('recorder resumed', { recorderState: recorder.state })
+    }
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mimeType })
+      logger?.info('recorder stopped', {
+        recorderState: recorder.state,
+        chunkCount: chunks.length,
+        chunkSizes,
+        blobType: blob.type,
+        blobSize: blob.size,
+      })
+      if (chunks.length === 0 || blob.size === 0) {
+        reject(new Error('Video export produced a 0B file. Copy the export log and share it.'))
+        return
+      }
+      resolve(blob)
+    }
   })
 
-  recorder.start()
   const frameDelay = 1000 / fps
+  recorder.start(Math.max(100, Math.round(frameDelay)))
+  logger?.info('recorder start requested', {
+    mimeType,
+    frameCount,
+    frameDelay,
+  })
 
   for (let i = 0; i < frameCount; i++) {
     await onFrame(i)
+    logger?.info('video frame rendered', { frame: i + 1, frameCount })
     await new Promise((r) => setTimeout(r, frameDelay))
   }
 
+  if (recorder.state === 'recording') {
+    recorder.requestData()
+    logger?.info('recorder data requested before stop')
+  }
   recorder.stop()
   return done
 }

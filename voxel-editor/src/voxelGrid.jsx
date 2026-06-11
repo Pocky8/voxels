@@ -66,7 +66,7 @@ export default function VoxelGrid({ onAddVoxel, onRemoveVoxel }) {
         <mesh
           key={voxel.id}
           position={voxel.position}
-          scale={0.96}
+          scale={1}
           onClick={(e) => handleClick(e, voxel)}
           onPointerDown={(e) => handlePointerDown(e, voxel)}
           onPointerMove={(e) => handlePointerMove(e, voxel)}
@@ -74,7 +74,7 @@ export default function VoxelGrid({ onAddVoxel, onRemoveVoxel }) {
           onPointerLeave={handlePointerUp}
         >
           <boxGeometry args={[1, 1, 1]} />
-          <meshBasicMaterial color={voxel.color} />
+          <meshStandardMaterial color={voxel.color} roughness={0.62} metalness={0} />
         </mesh>
       ))}
     </>

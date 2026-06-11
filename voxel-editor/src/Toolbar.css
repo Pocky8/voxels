@@ -25,7 +25,6 @@
   height: 28px;
   border-radius: 8px;
   background: linear-gradient(135deg, #60a5fa, #c4b5fd);
-  box-shadow: 0 4px 14px rgba(96, 165, 250, 0.28);
 }
 
 .sidebar__title {
@@ -80,13 +79,20 @@
   font-weight: 500;
   color: rgba(34, 22, 47, 0.55);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
 }
 
 .segmented__btn.active {
   background: white;
   color: rgba(34, 22, 47, 0.9);
-  box-shadow: 0 1px 4px rgba(34, 22, 47, 0.08);
+}
+
+.segmented__btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.segmented__btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .toggle {
@@ -113,11 +119,12 @@
   border-radius: 8px;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: transform 0.12s, border-color 0.12s;
+  transition: transform 0.12s, border-color 0.12s, filter 0.12s;
 }
 
 .palette__swatch:hover {
   transform: scale(1.08);
+  filter: saturate(1.08);
 }
 
 .palette__swatch.active {
@@ -157,12 +164,23 @@
   font-weight: 500;
   color: rgba(34, 22, 47, 0.78);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.15s;
 }
 
 .sidebar__action:hover:not(:disabled) {
   border-color: rgba(96, 165, 250, 0.35);
   background: rgba(96, 165, 250, 0.06);
+  transform: translateY(-1px);
+}
+
+.sidebar__action:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+.sidebar__action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .sidebar__action--primary {
@@ -180,4 +198,49 @@
 .sidebar__action:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+@media (max-width: 760px) {
+  .sidebar {
+    right: 0;
+    bottom: auto;
+    width: 100%;
+    height: 116px;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sidebar__brand {
+    flex: 0 0 170px;
+    padding: 14px 16px;
+    border-right: 1px solid rgba(34, 22, 47, 0.06);
+    border-bottom: 0;
+  }
+
+  .sidebar__panel {
+    flex: 0 0 190px;
+    padding: 12px 14px;
+    border-right: 1px solid rgba(34, 22, 47, 0.06);
+    border-bottom: 0;
+    gap: 8px;
+  }
+
+  .sidebar__panel--grow {
+    flex: 0 0 210px;
+  }
+
+  .palette {
+    grid-template-columns: repeat(10, 22px);
+  }
+
+  .palette__swatch {
+    border-radius: 6px;
+  }
+
+  .sidebar__action {
+    min-height: 36px;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
 }
