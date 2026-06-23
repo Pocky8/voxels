@@ -47,31 +47,55 @@ export function getAllFramesBounds(frames) {
   return { center, size, bounds }
 }
 
-export function getViewDimensions(plane, { center, size, bounds }) {
+export function getViewDimensions(plane, { center, size }, padding = 2) {
   if (plane === 'x') {
+    const distance = Math.max(size.y, size.z) / 2 + padding + 1
     return {
       center,
       width: size.z,
       height: size.y,
-      position: new THREE.Vector3(bounds.maxX + Math.max(size.y, size.z) + 4, center.y, center.z),
+      position: new THREE.Vector3(center.x + distance, center.y, center.z),
       up: new THREE.Vector3(0, 1, 0),
     }
   }
   if (plane === 'y') {
+    const distance = Math.max(size.x, size.z) / 2 + padding + 1
     return {
       center,
       width: size.x,
       height: size.z,
-      position: new THREE.Vector3(center.x, bounds.maxY + Math.max(size.x, size.z) + 4, center.z),
+      position: new THREE.Vector3(center.x, center.y + distance, center.z),
       up: new THREE.Vector3(0, 0, -1),
     }
   }
+  const distance = Math.max(size.x, size.y) / 2 + padding + 1
   return {
     center,
     width: size.x,
     height: size.y,
-    position: new THREE.Vector3(center.x, center.y, bounds.maxZ + Math.max(size.x, size.y) + 4),
+    position: new THREE.Vector3(center.x, center.y, center.z + distance),
     up: new THREE.Vector3(0, 1, 0),
+  }
+}
+
+export function getExportCanvasSize(plane, frameBounds, padding = 2) {
+  const view = getViewDimensions(plane, frameBounds, padding)
+  const aspectWidth = view.width + padding * 2
+  const aspectHeight = view.height + padding * 2
+  const longestSide = Math.min(1536, 2048)
+  const widthIsLonger = aspectWidth >= aspectHeight
+  const width = widthIsLonger
+    ? longestSide
+    : Math.max(1, Math.round(longestSide * (aspectWidth / aspectHeight)))
+  const height = widthIsLonger
+    ? Math.max(1, Math.round(longestSide * (aspectHeight / aspectWidth)))
+    : longestSide
+
+  return {
+    width,
+    height,
+    aspectWidth,
+    aspectHeight,
   }
 }
 
@@ -136,10 +160,21 @@ export async function recordVideo(canvas, frameCount, fps, format, onFrame, logg
     throw new Error('Video export is not supported by this browser.')
   }
 
-  const stream = canvas.captureStream(fps)
-  const tracks = stream.getTracks()
+  let stream = canvas.captureStream(0)
+  let tracks = stream.getTracks()
+  let videoTrack = tracks.find((track) => track.kind === 'video')
+  const canRequestFrame = typeof videoTrack?.requestFrame === 'function'
+  if (!canRequestFrame) {
+    for (const track of tracks) track.stop()
+    stream = canvas.captureStream(fps)
+    tracks = stream.getTracks()
+    videoTrack = tracks.find((track) => track.kind === 'video')
+  }
   logger?.info('capture stream created', {
     fps,
+    manualFrameCapture: canRequestFrame,
+    canvasWidth: canvas.width,
+    canvasHeight: canvas.height,
     trackCount: tracks.length,
     trackStates: tracks.map((track) => ({
       kind: track.kind,
@@ -154,7 +189,10 @@ export async function recordVideo(canvas, frameCount, fps, format, onFrame, logg
     throw new Error('MP4 export is not supported by this browser. Try PNG sequence instead.')
   }
 
-  const recorder = new MediaRecorder(stream, { mimeType })
+  const recorder = new MediaRecorder(stream, {
+    mimeType,
+    videoBitsPerSecond: 8_000_000,
+  })
   const chunks = []
   const chunkSizes = []
 
@@ -174,9 +212,6 @@ export async function recordVideo(canvas, frameCount, fps, format, onFrame, logg
       const message = e.error?.message || e.message || 'MediaRecorder failed'
       logger?.error('recorder error', { message, recorderState: recorder.state })
       reject(new Error(message))
-    }
-    recorder.onstart = () => {
-      logger?.info('recorder started', { recorderState: recorder.state })
     }
     recorder.onpause = () => {
       logger?.info('recorder paused', { recorderState: recorder.state })
@@ -201,6 +236,10 @@ export async function recordVideo(canvas, frameCount, fps, format, onFrame, logg
     }
   })
 
+  recorder.onstart = () => {
+    logger?.info('recorder started', { recorderState: recorder.state })
+  }
+
   const frameDelay = 1000 / fps
   recorder.start(Math.max(100, Math.round(frameDelay)))
   logger?.info('recorder start requested', {
@@ -211,6 +250,10 @@ export async function recordVideo(canvas, frameCount, fps, format, onFrame, logg
 
   for (let i = 0; i < frameCount; i++) {
     await onFrame(i)
+    if (canRequestFrame) {
+      videoTrack.requestFrame()
+      logger?.info('manual stream frame requested', { frame: i + 1, frameCount })
+    }
     logger?.info('video frame rendered', { frame: i + 1, frameCount })
     await new Promise((r) => setTimeout(r, frameDelay))
   }

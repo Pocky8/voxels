@@ -167,7 +167,7 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen }) {
       <section className="sidebar__panel">
         <p className="sidebar__label">Utilities</p>
         <button type="button" className="sidebar__action" onClick={onVoxelizerOpen}>
-          Mesh to voxels
+          Import voxels
         </button>
         <button
           type="button"

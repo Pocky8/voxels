@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useVoxelStore } from './store'
 
-export default function VoxelGrid({ onAddVoxel, onRemoveVoxel }) {
+export default function VoxelGrid({ onAddVoxel, onRemoveVoxel, gridHalf }) {
   const voxels = useVoxelStore((s) => s.voxels)
   const activeTool = useVoxelStore((s) => s.activeTool)
   const isPlaying = useVoxelStore((s) => s.isPlaying)
@@ -24,11 +24,11 @@ export default function VoxelGrid({ onAddVoxel, onRemoveVoxel }) {
     const ny = Math.round(e.face.normal.y)
     const nz = Math.round(e.face.normal.z)
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
-    const newX = clamp(x + nx, -19.5, 19.5)
-    const newZ = clamp(z + nz, -19.5, 19.5)
+    const newX = clamp(x + nx, -gridHalf + 0.5, gridHalf - 0.5)
+    const newZ = clamp(z + nz, -gridHalf + 0.5, gridHalf - 0.5)
     const newY = Math.max(0, y + ny)
     onAddVoxel([newX, newY, newZ])
-  }, [onAddVoxel])
+  }, [gridHalf, onAddVoxel])
 
   const handleClick = useCallback((e, voxel) => {
     if (isPlaying || isExporting || e.delta > 3) return

@@ -11,6 +11,7 @@ import VoxelizerModal from './VoxelizerModal'
 import GreenscreenExportModal from './GreenscreenExportModal'
 
 export default function App() {
+  const voxels = useVoxelStore((s) => s.voxels)
   const addVoxel = useVoxelStore((s) => s.addVoxel)
   const removeVoxel = useVoxelStore((s) => s.removeVoxel)
   const activeTool = useVoxelStore((s) => s.activeTool)
@@ -21,7 +22,6 @@ export default function App() {
   const continuousDraw = useVoxelStore((s) => s.continuousDraw)
   const showGrid = useVoxelStore((s) => s.showGrid)
   const isExporting = useVoxelStore((s) => s.isExporting)
-  const setCurrentFrame = useVoxelStore((s) => s.setCurrentFrame)
   const setShowGrid = useVoxelStore((s) => s.setShowGrid)
   const setIsExporting = useVoxelStore((s) => s.setIsExporting)
   const stopPlayback = useVoxelStore((s) => s.stopPlayback)
@@ -32,6 +32,18 @@ export default function App() {
   const [showGreenscreen, setShowGreenscreen] = useState(false)
   const floorDragPaintRef = useRef(false)
   const exportCaptureRef = useRef(null)
+
+  const gridExtent = Math.max(
+    40,
+    Math.ceil(
+      voxels.reduce((max, voxel) => {
+        const [x, , z] = voxel.position
+        return Math.max(max, Math.abs(x), Math.abs(z))
+      }, 0) * 2 + 4
+    )
+  )
+  const gridSize = gridExtent % 2 === 0 ? gridExtent : gridExtent + 1
+  const gridHalf = gridSize / 2
 
   useEffect(() => {
     if (!isPlaying) return undefined
@@ -85,17 +97,17 @@ export default function App() {
     e.stopPropagation()
     const { point } = e
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
-    const x = clamp(Math.floor(point.x) + 0.5, -19.5, 19.5)
-    const z = clamp(Math.floor(point.z) + 0.5, -19.5, 19.5)
+    const x = clamp(Math.floor(point.x) + 0.5, -gridHalf + 0.5, gridHalf - 0.5)
+    const z = clamp(Math.floor(point.z) + 0.5, -gridHalf + 0.5, gridHalf - 0.5)
     addVoxel([x, 0, z])
-  }, [activeTool, addVoxel, isPlaying, isExporting])
+  }, [activeTool, addVoxel, isPlaying, isExporting, gridHalf])
 
   const paintFloorAtPoint = useCallback((point) => {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
-    const x = clamp(Math.floor(point.x) + 0.5, -19.5, 19.5)
-    const z = clamp(Math.floor(point.z) + 0.5, -19.5, 19.5)
+    const x = clamp(Math.floor(point.x) + 0.5, -gridHalf + 0.5, gridHalf - 0.5)
+    const z = clamp(Math.floor(point.z) + 0.5, -gridHalf + 0.5, gridHalf - 0.5)
     addVoxel([x, 0, z])
-  }, [addVoxel])
+  }, [addVoxel, gridHalf])
 
   const handleFloorPointerDown = useCallback((e) => {
     if (!continuousDraw || activeTool !== 'draw' || isPlaying || isExporting || e.button !== 0) return
@@ -159,6 +171,7 @@ export default function App() {
           <VoxelGrid
             onAddVoxel={addVoxel}
             onRemoveVoxel={removeVoxel}
+            gridHalf={gridHalf}
           />
 
           <mesh
@@ -170,12 +183,12 @@ export default function App() {
             onPointerUp={handleFloorPointerUp}
             onPointerLeave={handleFloorPointerUp}
           >
-            <planeGeometry args={[40, 40]} />
+            <planeGeometry args={[gridSize, gridSize]} />
             <meshBasicMaterial visible={false} />
           </mesh>
 
           {showGrid && (
-            <gridHelper args={[40, 40, '#7b8797', '#b2bcc8']} position={[0, -0.5, 0]} />
+            <gridHelper args={[gridSize, gridSize, '#7b8797', '#b2bcc8']} position={[0, -0.5, 0]} />
           )}
 
           {!isExporting && <SceneControls paintMode={paintMode} />}
@@ -185,7 +198,7 @@ export default function App() {
             </GizmoHelper>
           )}
 
-          <ExportCapture ref={exportCaptureRef} setCurrentFrame={setCurrentFrame} />
+          <ExportCapture ref={exportCaptureRef} />
         </Canvas>
 
         <div className="canvas-hint">
