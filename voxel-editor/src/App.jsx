@@ -9,6 +9,7 @@ import Toolbar from './Toolbar'
 import TimelinePanel from './TimelinePanel'
 import VoxelizerModal from './VoxelizerModal'
 import GreenscreenExportModal from './GreenscreenExportModal'
+import SketchModal from './SketchModal'
 
 export default function App() {
   const voxels = useVoxelStore((s) => s.voxels)
@@ -30,6 +31,7 @@ export default function App() {
 
   const [showVoxelizer, setShowVoxelizer] = useState(false)
   const [showGreenscreen, setShowGreenscreen] = useState(false)
+  const [showSketch, setShowSketch] = useState(false)
   const floorDragPaintRef = useRef(false)
   const exportCaptureRef = useRef(null)
 
@@ -153,6 +155,7 @@ export default function App() {
       <Toolbar
         onVoxelizerOpen={() => setShowVoxelizer(true)}
         onGreenscreenOpen={() => setShowGreenscreen(true)}
+        onSketchOpen={() => setShowSketch(true)}
       />
       <TimelinePanel />
 
@@ -216,6 +219,10 @@ export default function App() {
 
       {showVoxelizer && (
         <VoxelizerModal onClose={() => setShowVoxelizer(false)} />
+      )}
+
+      {showSketch && (
+        <SketchModal onClose={() => setShowSketch(false)} />
       )}
 
       {showGreenscreen && (

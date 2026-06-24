@@ -9,7 +9,7 @@ const PALETTE = [
   '#adb5bd', '#343a40',
 ]
 
-export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen }) {
+export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen }) {
   const voxels = useVoxelStore((s) => s.voxels)
   const activeTool = useVoxelStore((s) => s.activeTool)
   const activeColor = useVoxelStore((s) => s.activeColor)
@@ -165,10 +165,17 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen }) {
       </section>
 
       <section className="sidebar__panel">
-        <p className="sidebar__label">Utilities</p>
+        <p className="sidebar__label">Create</p>
+        <button type="button" className="sidebar__action sidebar__action--primary" onClick={onSketchOpen}>
+          Sketch to voxel
+        </button>
         <button type="button" className="sidebar__action" onClick={onVoxelizerOpen}>
           Import voxels
         </button>
+      </section>
+
+      <section className="sidebar__panel">
+        <p className="sidebar__label">Frame</p>
         <button
           type="button"
           className="sidebar__action sidebar__action--danger"
