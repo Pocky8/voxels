@@ -32,7 +32,11 @@ export default function App() {
   const [showVoxelizer, setShowVoxelizer] = useState(false)
   const [showGreenscreen, setShowGreenscreen] = useState(false)
   const [showSketch, setShowSketch] = useState(false)
+  const [isCoarsePointer, setIsCoarsePointer] = useState(
+    () => window.matchMedia('(pointer: coarse)').matches
+  )
   const floorDragPaintRef = useRef(false)
+  const lastFloorCellRef = useRef(null)   // { x, z } integer cell coords
   const exportCaptureRef = useRef(null)
 
   const gridExtent = Math.max(
@@ -62,6 +66,13 @@ export default function App() {
     }
     window.addEventListener('pointerup', stopDragPaint)
     return () => window.removeEventListener('pointerup', stopDragPaint)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)')
+    const handler = (e) => setIsCoarsePointer(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
   }, [])
 
   useEffect(() => {
@@ -95,7 +106,8 @@ export default function App() {
   }, [redo, undo])
 
   const handleFloorClick = useCallback((e) => {
-    if (activeTool !== 'draw' || isPlaying || isExporting || e.delta > 3) return
+    const isTouch = e.nativeEvent?.pointerType === 'touch'
+    if (activeTool !== 'draw' || isPlaying || isExporting || e.delta > (isTouch ? 10 : 3)) return
     e.stopPropagation()
     const { point } = e
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
@@ -106,15 +118,44 @@ export default function App() {
 
   const paintFloorAtPoint = useCallback((point) => {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
-    const x = clamp(Math.floor(point.x) + 0.5, -gridHalf + 0.5, gridHalf - 0.5)
-    const z = clamp(Math.floor(point.z) + 0.5, -gridHalf + 0.5, gridHalf - 0.5)
-    addVoxel([x, 0, z])
+    const cx = Math.floor(point.x)
+    const cz = Math.floor(point.z)
+
+    const paintCell = (cellX, cellZ) => {
+      addVoxel([
+        clamp(cellX + 0.5, -gridHalf + 0.5, gridHalf - 0.5),
+        0,
+        clamp(cellZ + 0.5, -gridHalf + 0.5, gridHalf - 0.5),
+      ])
+    }
+
+    const last = lastFloorCellRef.current
+    if (last && (last.x !== cx || last.z !== cz)) {
+      // Bresenham line from last (exclusive) to current (inclusive)
+      // ensures no gaps when the pointer moves faster than event rate
+      let x0 = last.x, z0 = last.z
+      const dx = Math.abs(cx - x0), sx = x0 < cx ? 1 : -1
+      const dz = Math.abs(cz - z0), sz = z0 < cz ? 1 : -1
+      let err = dx - dz
+      while (true) {
+        const e2 = 2 * err
+        if (e2 > -dz) { err -= dz; x0 += sx }
+        if (e2 < dx)  { err += dx; z0 += sz }
+        paintCell(x0, z0)
+        if (x0 === cx && z0 === cz) break
+      }
+    } else {
+      paintCell(cx, cz)
+    }
+
+    lastFloorCellRef.current = { x: cx, z: cz }
   }, [addVoxel, gridHalf])
 
   const handleFloorPointerDown = useCallback((e) => {
     if (!continuousDraw || activeTool !== 'draw' || isPlaying || isExporting || e.button !== 0) return
     e.stopPropagation()
     floorDragPaintRef.current = true
+    lastFloorCellRef.current = null   // reset stroke start
     paintFloorAtPoint(e.point)
   }, [continuousDraw, activeTool, isPlaying, isExporting, paintFloorAtPoint])
 
@@ -127,6 +168,7 @@ export default function App() {
 
   const handleFloorPointerUp = useCallback(() => {
     floorDragPaintRef.current = false
+    lastFloorCellRef.current = null
   }, [])
 
   const handleGreenscreenExport = useCallback(async ({ plane, format, onProgress, logger }) => {
@@ -148,7 +190,7 @@ export default function App() {
     }
   }, [frames, fps, setIsExporting, setShowGrid, stopPlayback])
 
-  const paintMode = continuousDraw && activeTool === 'draw' && !isPlaying && !isExporting
+  const paintMode = continuousDraw && !isPlaying && !isExporting
 
   return (
     <>
@@ -162,6 +204,7 @@ export default function App() {
       <div className="canvas-wrapper">
         <Canvas
           camera={{ position: [8, 8, 8], fov: 50 }}
+          dpr={[1, 2]}
           gl={{ antialias: true, toneMapping: 0, preserveDrawingBuffer: true }}
         >
           <color attach="background" args={['#f4f6f8']} />
@@ -195,7 +238,7 @@ export default function App() {
           )}
 
           {!isExporting && <SceneControls paintMode={paintMode} />}
-          {!isExporting && (
+          {!isExporting && !isCoarsePointer && (
             <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
               <GizmoViewport axisColors={['#f94144', '#4cc9f0', '#4f9cf9']} labelColor="white" />
             </GizmoHelper>
@@ -210,10 +253,20 @@ export default function App() {
             : isPlaying
               ? 'Playback running'
               : activeTool === 'draw'
-                ? (continuousDraw
-                  ? 'Drag to paint · Right-click to orbit'
-                  : 'Click to place voxels')
-                : 'Click a voxel to erase'}
+                ? (isCoarsePointer
+                  ? (continuousDraw
+                    ? 'Drag to paint · Two fingers to move'
+                    : 'One finger to edit · Two fingers to move')
+                  : (continuousDraw
+                    ? 'Drag to paint · Right-click to orbit'
+                    : 'Click to place voxels'))
+                : (isCoarsePointer
+                  ? (continuousDraw
+                    ? 'Drag to erase · Two fingers to move'
+                    : 'One finger to erase · Two fingers to move')
+                  : (continuousDraw
+                    ? 'Drag to erase · Right-click to orbit'
+                    : 'Click a voxel to erase'))}
         </div>
       </div>
 

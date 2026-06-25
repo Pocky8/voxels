@@ -16,6 +16,7 @@ export default function SketchModal({ onClose }) {
 
   const canvasRef = useRef(null)
   const isDrawingRef = useRef(false)
+  const lastCellRef = useRef(null)
 
   const [gridSize, setGridSize] = useState(32)
   const [penColor, setPenColor] = useState('#4f9cf9')
@@ -40,31 +41,52 @@ export default function SketchModal({ onClose }) {
     const canvas = canvasRef.current
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
-    const col = Math.floor(((clientX - rect.left) / rect.width) * gridSize)
-    const row = Math.floor(((clientY - rect.top) / rect.height) * gridSize)
-    if (col < 0 || row < 0 || col >= gridSize || row >= gridSize) return
+    const c = Math.floor(((clientX - rect.left) / rect.width) * gridSize)
+    const r = Math.floor(((clientY - rect.top) / rect.height) * gridSize)
 
     const ctx = canvas.getContext('2d')
     const radius = Math.max(0, brushSize - 1)
 
-    for (let dy = -radius; dy <= radius; dy++) {
-      for (let dx = -radius; dx <= radius; dx++) {
-        const x = col + dx
-        const y = row + dy
-        if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) continue
-        if (tool === 'eraser') {
-          ctx.clearRect(x, y, 1, 1)
-        } else {
-          ctx.fillStyle = penColor
-          ctx.fillRect(x, y, 1, 1)
+    const paintCell = (col, row) => {
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const x = col + dx
+          const y = row + dy
+          if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) continue
+          if (tool === 'eraser') {
+            ctx.clearRect(x, y, 1, 1)
+          } else {
+            ctx.fillStyle = penColor
+            ctx.fillRect(x, y, 1, 1)
+          }
         }
       }
     }
+
+    const last = lastCellRef.current
+    if (last && (last.c !== c || last.r !== r)) {
+      let x0 = last.c, y0 = last.r
+      const dx = Math.abs(c - x0), sx = x0 < c ? 1 : -1
+      const dy = Math.abs(r - y0), sy = y0 < r ? 1 : -1
+      let err = dx - dy
+      while (true) {
+        const e2 = 2 * err
+        if (e2 > -dy) { err -= dy; x0 += sx }
+        if (e2 < dx)  { err += dx; y0 += sy }
+        paintCell(x0, y0)
+        if (x0 === c && y0 === r) break
+      }
+    } else {
+      paintCell(c, r)
+    }
+
+    lastCellRef.current = { c, r }
   }, [brushSize, gridSize, penColor, tool])
 
   const handlePointerDown = (e) => {
     e.preventDefault()
     isDrawingRef.current = true
+    lastCellRef.current = null
     canvasRef.current?.setPointerCapture(e.pointerId)
     paintAt(e.clientX, e.clientY)
   }
@@ -76,6 +98,7 @@ export default function SketchModal({ onClose }) {
 
   const handlePointerUp = (e) => {
     isDrawingRef.current = false
+    lastCellRef.current = null
     canvasRef.current?.releasePointerCapture(e.pointerId)
   }
 

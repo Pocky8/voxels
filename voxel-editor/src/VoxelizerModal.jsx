@@ -9,6 +9,8 @@ export default function VoxelizerModal({ onClose }) {
   const [resolution, setResolution] = useState(20)
   const [imageSize, setImageSize] = useState(32)
   const [skipLightBackground, setSkipLightBackground] = useState(true)
+  const [alphaThreshold, setAlphaThreshold] = useState(128)
+  const [pixelPerfect, setPixelPerfect] = useState(false)
   const [color, setColor] = useState('#4f9cf9')
   const [status, setStatus] = useState('idle')
   const [progress, setProgress] = useState(0)
@@ -59,7 +61,7 @@ export default function VoxelizerModal({ onClose }) {
       canvas.width = width
       canvas.height = height
       const ctx = canvas.getContext('2d', { willReadFrequently: true })
-      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingEnabled = !pixelPerfect
       ctx.imageSmoothingQuality = 'high'
       ctx.drawImage(img, 0, 0, width, height)
       setProgress(55)
@@ -80,7 +82,7 @@ export default function VoxelizerModal({ onClose }) {
           const a = data[i + 3]
           const isLightBackground = skipLightBackground && r > 238 && g > 238 && b > 238
 
-          if (a < 64 || isLightBackground) continue
+          if (a < alphaThreshold || isLightBackground) continue
 
           voxels.push({
             id: id++,
@@ -240,15 +242,43 @@ export default function VoxelizerModal({ onClose }) {
                 />
               </div>
 
-              <label className="modal__checkbox">
+              <div className="modal__field">
+                <label htmlFor="alpha-threshold" className="modal__field-label">
+                  Opacity Threshold: <strong>{alphaThreshold}</strong>
+                  <span className="modal__field-hint">&nbsp;(0-255)</span>
+                </label>
                 <input
-                  type="checkbox"
-                  checked={skipLightBackground}
-                  onChange={(e) => setSkipLightBackground(e.target.checked)}
+                  id="alpha-threshold"
+                  type="range"
+                  min={1}
+                  max={255}
+                  value={alphaThreshold}
+                  onChange={(e) => setAlphaThreshold(Number(e.target.value))}
                   disabled={status === 'running'}
+                  className="modal__slider"
                 />
-                <span>Clean white background</span>
-              </label>
+              </div>
+
+              <div className="modal__checkbox-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label className="modal__checkbox">
+                  <input
+                    type="checkbox"
+                    checked={skipLightBackground}
+                    onChange={(e) => setSkipLightBackground(e.target.checked)}
+                    disabled={status === 'running'}
+                  />
+                  <span>Clean white background</span>
+                </label>
+                <label className="modal__checkbox">
+                  <input
+                    type="checkbox"
+                    checked={pixelPerfect}
+                    onChange={(e) => setPixelPerfect(e.target.checked)}
+                    disabled={status === 'running'}
+                  />
+                  <span>Pixel perfect (Disable smoothing)</span>
+                </label>
+              </div>
             </>
           ) : (
             <>

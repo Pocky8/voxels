@@ -241,3 +241,36 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 560px) {
+  .sketch-backdrop {
+    align-items: flex-end;
+  }
+
+  .sketch-modal {
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: calc(100dvh - env(safe-area-inset-top, 20px));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sketch-modal__header {
+    flex-shrink: 0;
+  }
+
+  .sketch-modal__body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sketch-modal__status {
+    flex-shrink: 0;
+  }
+
+  .sketch-modal__footer {
+    flex-shrink: 0;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+}

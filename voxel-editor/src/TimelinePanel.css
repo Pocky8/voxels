@@ -155,11 +155,14 @@
 @media (max-width: 760px) {
   .timeline {
     left: 0;
-    height: 148px;
+    height: calc(148px + env(safe-area-inset-bottom, 0px));
+    padding-top: 10px;
+    padding-right: 12px;
+    padding-left: 12px;
+    padding-bottom: env(safe-area-inset-bottom, 10px);
     grid-template-columns: 1fr auto;
     grid-template-rows: auto 1fr;
     gap: 8px 12px;
-    padding: 10px 12px;
   }
 
   .timeline__transport {

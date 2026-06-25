@@ -31,7 +31,8 @@ export default function VoxelGrid({ onAddVoxel, onRemoveVoxel, gridHalf }) {
   }, [gridHalf, onAddVoxel])
 
   const handleClick = useCallback((e, voxel) => {
-    if (isPlaying || isExporting || e.delta > 3) return
+    const deltaThreshold = e.nativeEvent?.pointerType === 'touch' ? 10 : 3
+    if (isPlaying || isExporting || e.delta > deltaThreshold) return
     e.stopPropagation()
 
     if (activeTool === 'erase') {
@@ -43,18 +44,26 @@ export default function VoxelGrid({ onAddVoxel, onRemoveVoxel, gridHalf }) {
   }, [activeTool, isPlaying, isExporting, onRemoveVoxel, placeAdjacentVoxel])
 
   const handlePointerDown = useCallback((e, voxel) => {
-    if (!continuousDraw || activeTool !== 'draw' || isPlaying || isExporting || e.button !== 0) return
+    if (!continuousDraw || isPlaying || isExporting || e.button !== 0) return
     e.stopPropagation()
     isDraggingToDrawRef.current = true
-    placeAdjacentVoxel(e, voxel)
-  }, [continuousDraw, activeTool, isPlaying, isExporting, placeAdjacentVoxel])
+    if (activeTool === 'erase') {
+      onRemoveVoxel(voxel.id)
+    } else {
+      placeAdjacentVoxel(e, voxel)
+    }
+  }, [continuousDraw, activeTool, isPlaying, isExporting, onRemoveVoxel, placeAdjacentVoxel])
 
   const handlePointerMove = useCallback((e, voxel) => {
-    if (!continuousDraw || !isDraggingToDrawRef.current || activeTool !== 'draw' || isPlaying || isExporting) return
+    if (!continuousDraw || !isDraggingToDrawRef.current || isPlaying || isExporting) return
     if ((e.buttons & 1) !== 1) return
     e.stopPropagation()
-    placeAdjacentVoxel(e, voxel)
-  }, [continuousDraw, activeTool, isPlaying, isExporting, placeAdjacentVoxel])
+    if (activeTool === 'erase') {
+      onRemoveVoxel(voxel.id)
+    } else {
+      placeAdjacentVoxel(e, voxel)
+    }
+  }, [continuousDraw, activeTool, isPlaying, isExporting, onRemoveVoxel, placeAdjacentVoxel])
 
   const handlePointerUp = useCallback(() => {
     isDraggingToDrawRef.current = false

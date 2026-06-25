@@ -69,8 +69,9 @@ html, body, #root {
 @media (max-width: 760px) {
   .canvas-wrapper {
     left: 0;
-    top: 116px;
-    bottom: 148px;
+    top: 0;
+    /* 148px timeline + 56px dock + device safe area */
+    bottom: calc(204px + env(safe-area-inset-bottom, 0px));
   }
 
   .canvas-hint {
