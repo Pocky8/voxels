@@ -6,7 +6,9 @@ import {
   getAllFramesBounds,
   getExportCanvasSize,
   canvasToBlob,
+  canvasToUint8Array,
   downloadBlob,
+  encodePngsToMp4,
   recordVideo,
 } from './greenscreenExport'
 
@@ -132,26 +134,50 @@ const ExportCapture = forwardRef(function ExportCapture(_, ref) {
         })
 
         if (format === 'mp4') {
-          onProgress?.(0, frames.length, 'Recording video...')
-          const blob = await recordVideo(renderer.domElement, frames.length, fps, format, async (i) => {
+          // Render every frame, convert to PNG via base64 (avoids broken Blob path)
+          const pngFrames = []
+          for (let i = 0; i < frames.length; i++) {
+            onProgress?.(i + 1, frames.length + 1, `Rendering frame ${i + 1}/${frames.length}...`)
             await renderFrame(i)
-            onProgress?.(i + 1, frames.length, 'Recording video...')
-          }, logger)
-          logger?.info('video blob ready', {
-            type: blob.type,
-            size: blob.size,
-          })
-          if (blob.size === 0) {
-            throw new Error('Video export produced a 0B file. Copy the export log and share it.')
+            const frameData = canvasToUint8Array(renderer.domElement)
+            pngFrames.push(frameData)
+            logger?.info('png frame captured for mp4', {
+              frame: i + 1,
+              frameCount: frames.length,
+              size: frameData.byteLength,
+            })
           }
-          downloadBlob(blob, 'voxel-animation.mp4')
-          logger?.info('video download started', {
-            filename: 'voxel-animation.mp4',
-            size: blob.size,
-          })
+
+          onProgress?.(frames.length, frames.length + 1, 'Encoding MP4 (first time may take a moment)...')
+          let mp4Blob
+          try {
+            mp4Blob = await encodePngsToMp4(pngFrames, fps, logger)
+          } catch (encodeErr) {
+            logger?.error('ffmpeg mp4 encode failed, trying mediarecorder fallback', {
+              message: encodeErr?.message || 'Unknown encode error',
+            })
+            onProgress?.(frames.length, frames.length + 1, 'Encoding failed — trying browser recorder...')
+            mp4Blob = await recordVideo(
+              renderer.domElement,
+              frames.length,
+              fps,
+              async (i) => {
+                await renderFrame(i)
+              },
+              logger,
+            )
+          }
+
+          if (mp4Blob.size === 0) {
+            throw new Error('MP4 encoding produced an empty file.')
+          }
+          const extension = mp4Blob.type.includes('webm') ? 'webm' : 'mp4'
+          downloadBlob(mp4Blob, `voxel-animation.${extension}`)
+          logger?.info('mp4 download started', { size: mp4Blob.size, type: mp4Blob.type })
           return
         }
 
+        // PNG sequence
         for (let i = 0; i < frames.length; i++) {
           onProgress?.(i + 1, frames.length, 'Capturing frames...')
           await renderFrame(i)

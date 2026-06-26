@@ -1,12 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen&display=swap');
 
 :root {
-  --ui-bg: #f4f6f8;
-  --ui-text: #1f1630;
-  --ui-muted: rgba(31, 22, 48, 0.55);
-  --ui-border: rgba(31, 22, 48, 0.1);
-  --accent: #8b7cf8;
-  --accent-soft: rgba(139, 124, 248, 0.14);
+  --ui-bg: #F9F9F6;
+  --ui-border: #1A1A24;
+  --shadow-color: #1A1A24;
+  --text-primary: #1A1A24;
+  --ui-text: #1A1A24;
+  
+  /* CMYK Neons */
+  --cmyk-cyan: #00ffff;
+  --cmyk-magenta: #ff00ff;
+  --cmyk-yellow: #ffff00;
+
+  --accent: var(--cmyk-magenta);
+  --accent-soft: rgba(255, 0, 255, 0.2);
+  
+  --border-width: 1px;
+  --shadow-offset: 2px;
 }
 
 *, *::before, *::after {
@@ -19,10 +30,22 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'Silkscreen', 'Courier New', monospace;
+  font-size: 12px;
   background: var(--ui-bg);
   color: var(--ui-text);
+  /* Disable antialiasing for crisp pixel fonts */
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+h1, h2, h3, .brand-font {
+  font-family: 'VT323', monospace;
   -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-radius: 0 !important;
 }
 
 .canvas-wrapper {
@@ -31,7 +54,7 @@ html, body, #root {
   top: 0;
   right: 0;
   bottom: 112px;
-  background: #f4f6f8;
+  background: var(--ui-bg);
 }
 
 .canvas-wrapper canvas {
@@ -43,15 +66,16 @@ html, body, #root {
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--ui-border);
-  padding: 7px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--ui-muted);
+  background: var(--cmyk-yellow);
+  border: var(--border-width) solid var(--ui-border);
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--ui-text);
   pointer-events: none;
   white-space: nowrap;
   animation: hint-pop 0.22s ease-out;
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--shadow-color);
+  font-weight: bold;
 }
 
 @keyframes hint-pop {
@@ -70,8 +94,7 @@ html, body, #root {
   .canvas-wrapper {
     left: 0;
     top: 0;
-    /* 148px timeline + 56px dock + device safe area */
-    bottom: calc(204px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(204px + env(safe-area-bottom, 0px));
   }
 
   .canvas-hint {

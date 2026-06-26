@@ -1,4 +1,5 @@
 import { useVoxelStore } from './store'
+import { Play, Square, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import './TimelinePanel.css'
 
 export default function TimelinePanel() {
@@ -21,7 +22,7 @@ export default function TimelinePanel() {
           disabled={isPlaying}
           title="Previous frame"
         >
-          ‹
+          <ChevronLeft size={20} strokeWidth={3} />
         </button>
         <button
           type="button"
@@ -29,7 +30,7 @@ export default function TimelinePanel() {
           onClick={togglePlayback}
           title={isPlaying ? 'Stop' : 'Play'}
         >
-          {isPlaying ? '■' : '▶'}
+          {isPlaying ? <Square size={16} fill="currentColor" strokeWidth={2.5} /> : <Play size={20} fill="currentColor" strokeWidth={2.5} />}
         </button>
         <button
           type="button"
@@ -38,7 +39,7 @@ export default function TimelinePanel() {
           disabled={isPlaying}
           title="Next frame"
         >
-          ›
+          <ChevronRight size={20} strokeWidth={3} />
         </button>
         <span className="timeline__counter">
           {currentFrame + 1} / {frames.length}
@@ -56,7 +57,6 @@ export default function TimelinePanel() {
             title={`Frame ${i + 1} · ${frame.length} voxels`}
           >
             <span className="timeline__frame-num">{i + 1}</span>
-            <span className="timeline__frame-count">{frame.length}</span>
           </button>
         ))}
         <button
@@ -66,7 +66,7 @@ export default function TimelinePanel() {
           disabled={isPlaying}
           title="Add frame"
         >
-          +
+          <Plus size={24} strokeWidth={3} />
         </button>
       </div>
 
@@ -77,8 +77,9 @@ export default function TimelinePanel() {
           className="timeline__action"
           onClick={removeCurrentFrame}
           disabled={frames.length <= 1 || isPlaying}
+          title="Remove frame"
         >
-          Remove frame
+          <Trash2 size={16} strokeWidth={2.5} />
         </button>
       </div>
     </footer>

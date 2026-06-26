@@ -193,6 +193,20 @@ export const useVoxelStore = create((set, get) => ({
     )
   },
 
+  setAllFrames: (framesData) => {
+    const cloned = cloneFrames(framesData)
+    // Update nextId by checking all frames
+    const maxId = cloned.flat().reduce((max, v) => Math.max(max, v.id ?? 0), 0)
+    nextId = maxId + 1
+    set((state) =>
+      withHistory(state, {
+        frames: cloned,
+        currentFrame: 0,
+        voxels: cloneVoxels(cloned[0] || []),
+      })
+    )
+  },
+
   clearCanvas: () =>
     set((state) => {
       if (state.voxels.length === 0) return state

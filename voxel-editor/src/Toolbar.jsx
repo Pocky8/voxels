@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useVoxelStore } from './store'
 import { exportUnityCS, exportGodotGD, exportGLTF } from './exporters'
+import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette } from 'lucide-react'
 import './Toolbar.css'
 
 const PALETTE = [
@@ -63,58 +64,50 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
 
         {/* Brand + undo/redo */}
         <header className="sb-brand">
-          <div className="sb-brand__mark" />
           <div className="sb-brand__text">
             <p className="sb-brand__name">SpriteForge</p>
-            <p className="sb-brand__sub">Voxel Studio</p>
           </div>
           <div className="sb-brand__actions">
-            <button className="icon-btn" onClick={undo} disabled={past.length === 0 || isExporting} title="Undo (Ctrl+Z)">↩</button>
-            <button className="icon-btn" onClick={redo} disabled={future.length === 0 || isExporting} title="Redo (Ctrl+Y)">↪</button>
+            <button className="icon-btn" onClick={undo} disabled={past.length === 0 || isExporting} title="Undo (Ctrl+Z)"><Undo2 size={16} strokeWidth={2.5} /></button>
+            <button className="icon-btn" onClick={redo} disabled={future.length === 0 || isExporting} title="Redo (Ctrl+Y)"><Redo2 size={16} strokeWidth={2.5} /></button>
           </div>
         </header>
 
-        {/* ── Tools ── */}
         <div className="sb-section">
           <p className="sb-label">Tools</p>
 
           <div className="tool-grid">
             <button type="button"
               className={`tool-btn ${activeTool === 'draw' ? 'tool-btn--on' : ''}`}
-              onClick={() => setActiveTool('draw')}>
-              <span className="tool-btn__icon">✎</span>
-              <span className="tool-btn__name">Draw</span>
+              onClick={() => setActiveTool('draw')} title="Draw">
+              <span className="tool-btn__icon"><Pencil size={20} strokeWidth={2.5} /></span>
             </button>
             <button type="button"
               className={`tool-btn ${activeTool === 'erase' ? 'tool-btn--on' : ''}`}
-              onClick={() => setActiveTool('erase')}>
-              <span className="tool-btn__icon">⌫</span>
-              <span className="tool-btn__name">Erase</span>
+              onClick={() => setActiveTool('erase')} title="Erase">
+              <span className="tool-btn__icon"><Eraser size={20} strokeWidth={2.5} /></span>
             </button>
           </div>
 
-          {/* Modifier chips — highlighted when active */}
-          <div className="chip-row">
+          <div className="chip-row" style={{ marginTop: '4px' }}>
             <button type="button"
               className={`chip ${continuousDraw ? 'chip--on' : ''}`}
-              onClick={() => setContinuousDraw(!continuousDraw)}
-              title="Hold and drag to paint continuously">
-              <span className="chip__pip" />
-              Continuous
+              onClick={() => setContinuousDraw(!continuousDraw)}>
+              <Repeat size={16} strokeWidth={3} /> Continuous
             </button>
             <button type="button"
               className={`chip ${mirrorX ? 'chip--on' : ''}`}
-              onClick={() => setMirrorX(!mirrorX)}
-              title="Mirror voxels across the X axis">
-              <span className="chip__pip" />
-              Mirror X
+              onClick={() => setMirrorX(!mirrorX)}>
+              <FlipHorizontal size={16} strokeWidth={3} /> Mirror X
             </button>
           </div>
         </div>
 
         {/* ── Color ── */}
         <div className="sb-section">
-          <p className="sb-label">Color</p>
+          <p className="sb-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Palette size={16} strokeWidth={3} /> Color
+          </p>
           <PaletteGrid onPick={setActiveColor} />
           <div className="color-row">
             <input type="color" value={activeColor}
@@ -129,14 +122,14 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
         <div className="sb-section">
           <p className="sb-label">Create</p>
           <button type="button" className="feat-btn feat-btn--primary" onClick={onSketchOpen}>
-            <span className="feat-btn__icon">✍</span>
+            <span className="feat-btn__icon"><PenTool size={20} strokeWidth={2.5} /></span>
             <span className="feat-btn__body">
               <span className="feat-btn__title">Sketch to Voxel</span>
               <span className="feat-btn__sub">Draw and convert to 3D</span>
             </span>
           </button>
           <button type="button" className="feat-btn" onClick={onVoxelizerOpen}>
-            <span className="feat-btn__icon">⬆</span>
+            <span className="feat-btn__icon"><Download size={20} strokeWidth={2.5} /></span>
             <span className="feat-btn__body">
               <span className="feat-btn__title">Import Voxels</span>
               <span className="feat-btn__sub">From image or mesh</span>
@@ -178,28 +171,23 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
       <nav className="mobile-dock" aria-label="Primary tools">
         <button type="button" className={`dock-btn ${activeTool === 'draw' ? 'dock-btn--on' : ''}`}
           onClick={() => { setActiveTool('draw'); closeSheets() }}>
-          <span className="dock-btn__ico">✎</span>
-          <span className="dock-btn__lbl">Draw</span>
+          <span className="dock-btn__ico"><Pencil size={20} strokeWidth={2.5} /></span>
         </button>
         <button type="button" className={`dock-btn ${activeTool === 'erase' ? 'dock-btn--on' : ''}`}
           onClick={() => { setActiveTool('erase'); closeSheets() }}>
-          <span className="dock-btn__ico">⌫</span>
-          <span className="dock-btn__lbl">Erase</span>
+          <span className="dock-btn__ico"><Eraser size={20} strokeWidth={2.5} /></span>
         </button>
         <button type="button" className={`dock-btn ${colorOpen ? 'dock-btn--on' : ''}`}
           onClick={() => { setColorOpen(v => !v); setMoreOpen(false) }}>
           <span className="dock-btn__swatch" style={{ background: activeColor }} />
-          <span className="dock-btn__lbl">Color</span>
         </button>
         <button type="button" className="dock-btn"
           onClick={() => { onSketchOpen(); closeSheets() }}>
-          <span className="dock-btn__ico">✍</span>
-          <span className="dock-btn__lbl">Sketch</span>
+          <span className="dock-btn__ico"><PenTool size={20} strokeWidth={2.5} /></span>
         </button>
         <button type="button" className={`dock-btn ${moreOpen ? 'dock-btn--on' : ''}`}
           onClick={() => { setMoreOpen(v => !v); setColorOpen(false) }}>
-          <span className="dock-btn__dots">•••</span>
-          <span className="dock-btn__lbl">More</span>
+          <span className="dock-btn__ico"><MoreHorizontal size={20} strokeWidth={2.5} /></span>
         </button>
       </nav>
 
@@ -234,11 +222,11 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
             <div className="chip-row">
               <button type="button" className={`chip ${continuousDraw ? 'chip--on' : ''}`}
                 onClick={() => setContinuousDraw(!continuousDraw)}>
-                <span className="chip__pip" />Continuous
+                <Repeat size={16} strokeWidth={3} /> Continuous
               </button>
               <button type="button" className={`chip ${mirrorX ? 'chip--on' : ''}`}
                 onClick={() => setMirrorX(!mirrorX)}>
-                <span className="chip__pip" />Mirror X
+                <FlipHorizontal size={16} strokeWidth={3} /> Mirror X
               </button>
             </div>
 
