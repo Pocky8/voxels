@@ -68,7 +68,7 @@ export default function VoxelizerModal({ onClose }) {
 
         voxels.push({
           id: id++,
-          position: [col - originX + 0.5, 0, height - row - originZ - 0.5],
+          position: [col - originX + 0.5, 0, row - originZ + 0.5],
           color: toHex(r, g, b),
         })
       }

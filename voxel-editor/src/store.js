@@ -50,6 +50,7 @@ export const useVoxelStore = create((set, get) => ({
   setActiveColor: (color) => set({ activeColor: color }),
   setContinuousDraw: (continuousDraw) => set({ continuousDraw }),
   setMirrorX: (mirrorX) => set({ mirrorX }),
+  setFps: (fps) => set({ fps }),
   setShowGrid: (showGrid) => set({ showGrid }),
   setIsExporting: (isExporting) => set({ isExporting }),
 

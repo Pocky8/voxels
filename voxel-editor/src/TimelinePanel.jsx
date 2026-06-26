@@ -7,7 +7,9 @@ export default function TimelinePanel() {
   const currentFrame = useVoxelStore((s) => s.currentFrame)
   const isPlaying = useVoxelStore((s) => s.isPlaying)
   const voxels = useVoxelStore((s) => s.voxels)
+  const fps = useVoxelStore((s) => s.fps)
   const setCurrentFrame = useVoxelStore((s) => s.setCurrentFrame)
+  const setFps = useVoxelStore((s) => s.setFps)
   const addFrameAfterCurrent = useVoxelStore((s) => s.addFrameAfterCurrent)
   const removeCurrentFrame = useVoxelStore((s) => s.removeCurrentFrame)
   const togglePlayback = useVoxelStore((s) => s.togglePlayback)
@@ -72,6 +74,18 @@ export default function TimelinePanel() {
 
       <div className="timeline__actions">
         <span className="timeline__stat">{voxels.length} voxels</span>
+        <label className="timeline__fps" title="Playback and export FPS">
+          <span>FPS</span>
+          <select
+            value={fps}
+            onChange={(e) => setFps(Number(e.target.value))}
+            disabled={isPlaying}
+          >
+            <option value={6}>6</option>
+            <option value={12}>12</option>
+            <option value={24}>24</option>
+          </select>
+        </label>
         <button
           type="button"
           className="timeline__action"
