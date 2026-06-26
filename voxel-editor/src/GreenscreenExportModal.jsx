@@ -30,11 +30,12 @@ export default function GreenscreenExportModal({ onClose, onExport, frameCount }
         format,
         logger,
         onProgress: (current, total, message) => {
-          setProgress(Math.round((current / total) * 100))
+          setProgress(Math.min(100, Math.round((current / total) * 100)))
           setStatus(message)
         },
       })
       logger.info('export completed')
+      setProgress(100)
       setStatus('Export complete')
     } catch (err) {
       logger.error('export failed', {
@@ -125,7 +126,7 @@ export default function GreenscreenExportModal({ onClose, onExport, frameCount }
           <span>Background #00b140</span>
         </div>
 
-        {exporting && (
+        {(exporting || status) && (
           <div className="gs-progress">
             <div className="gs-progress__bar" style={{ width: `${progress}%` }} />
             <span>{status}</span>

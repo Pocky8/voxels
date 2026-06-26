@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { GizmoHelper, GizmoViewport } from '@react-three/drei'
 import { useVoxelStore } from './store'
@@ -39,16 +39,18 @@ export default function App() {
   const lastFloorCellRef = useRef(null)   // { x, z } integer cell coords
   const exportCaptureRef = useRef(null)
 
-  const gridExtent = Math.max(
-    40,
-    Math.ceil(
-      voxels.reduce((max, voxel) => {
-        const [x, , z] = voxel.position
-        return Math.max(max, Math.abs(x), Math.abs(z))
-      }, 0) * 2 + 4
+  const gridSize = useMemo(() => {
+    const gridExtent = Math.max(
+      40,
+      Math.ceil(
+        voxels.reduce((max, voxel) => {
+          const [x, , z] = voxel.position
+          return Math.max(max, Math.abs(x), Math.abs(z))
+        }, 0) * 2 + 4
+      )
     )
-  )
-  const gridSize = gridExtent % 2 === 0 ? gridExtent : gridExtent + 1
+    return gridExtent % 2 === 0 ? gridExtent : gridExtent + 1
+  }, [voxels])
   const gridHalf = gridSize / 2
 
   useEffect(() => {

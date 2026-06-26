@@ -1,5 +1,72 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import * as THREE from 'three'
 import { useVoxelStore } from './store'
+
+const matrixObject = new THREE.Object3D()
+
+function VoxelInstances({
+  color,
+  voxels,
+  onClickVoxel,
+  onPointerDownVoxel,
+  onPointerMoveVoxel,
+  onPointerUp,
+}) {
+  const meshRef = useRef(null)
+  const geometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), [])
+  const material = useMemo(() => new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.62,
+    metalness: 0,
+  }), [color])
+
+  useEffect(() => {
+    const mesh = meshRef.current
+    if (!mesh) return
+
+    voxels.forEach((voxel, index) => {
+      matrixObject.position.fromArray(voxel.position)
+      matrixObject.rotation.set(0, 0, 0)
+      matrixObject.scale.set(1, 1, 1)
+      matrixObject.updateMatrix()
+      mesh.setMatrixAt(index, matrixObject.matrix)
+    })
+    mesh.count = voxels.length
+    mesh.instanceMatrix.needsUpdate = true
+    mesh.computeBoundingSphere()
+  }, [voxels])
+
+  useEffect(() => () => {
+    geometry.dispose()
+    material.dispose()
+  }, [geometry, material])
+
+  const getVoxel = useCallback((e) => {
+    if (e.instanceId == null) return null
+    return voxels[e.instanceId] ?? null
+  }, [voxels])
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, material, voxels.length]}
+      onClick={(e) => {
+        const voxel = getVoxel(e)
+        if (voxel) onClickVoxel(e, voxel)
+      }}
+      onPointerDown={(e) => {
+        const voxel = getVoxel(e)
+        if (voxel) onPointerDownVoxel(e, voxel)
+      }}
+      onPointerMove={(e) => {
+        const voxel = getVoxel(e)
+        if (voxel) onPointerMoveVoxel(e, voxel)
+      }}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
+    />
+  )
+}
 
 export default function VoxelGrid({ onAddVoxel, onRemoveVoxel, gridHalf }) {
   const voxels = useVoxelStore((s) => s.voxels)
@@ -8,6 +75,20 @@ export default function VoxelGrid({ onAddVoxel, onRemoveVoxel, gridHalf }) {
   const isExporting = useVoxelStore((s) => s.isExporting)
   const continuousDraw = useVoxelStore((s) => s.continuousDraw)
   const isDraggingToDrawRef = useRef(false)
+
+  const voxelGroups = useMemo(() => {
+    const groups = new Map()
+    for (const voxel of voxels) {
+      const color = voxel.color || '#4f9cf9'
+      const group = groups.get(color)
+      if (group) {
+        group.push(voxel)
+      } else {
+        groups.set(color, [voxel])
+      }
+    }
+    return Array.from(groups, ([color, groupVoxels]) => ({ color, voxels: groupVoxels }))
+  }, [voxels])
 
   useEffect(() => {
     const stopDragging = () => {
@@ -71,20 +152,16 @@ export default function VoxelGrid({ onAddVoxel, onRemoveVoxel, gridHalf }) {
 
   return (
     <>
-      {voxels.map((voxel) => (
-        <mesh
-          key={voxel.id}
-          position={voxel.position}
-          scale={1}
-          onClick={(e) => handleClick(e, voxel)}
-          onPointerDown={(e) => handlePointerDown(e, voxel)}
-          onPointerMove={(e) => handlePointerMove(e, voxel)}
+      {voxelGroups.map((group) => (
+        <VoxelInstances
+          key={`${group.color}-${group.voxels.length}`}
+          color={group.color}
+          voxels={group.voxels}
+          onClickVoxel={handleClick}
+          onPointerDownVoxel={handlePointerDown}
+          onPointerMoveVoxel={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-        >
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color={voxel.color} roughness={0.62} metalness={0} />
-        </mesh>
+        />
       ))}
     </>
   )

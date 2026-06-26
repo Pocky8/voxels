@@ -10,6 +10,7 @@ import {
   downloadBlob,
   encodePngsToMp4,
   recordVideo,
+  yieldToBrowser,
 } from './greenscreenExport'
 
 function createVoxelMesh(voxel) {
@@ -136,8 +137,11 @@ const ExportCapture = forwardRef(function ExportCapture(_, ref) {
         if (format === 'mp4') {
           // Render every frame, convert to PNG via base64 (avoids broken Blob path)
           const pngFrames = []
+          const writeTotal = frames.length
+          const exportTotal = frames.length + writeTotal + 2
           for (let i = 0; i < frames.length; i++) {
-            onProgress?.(i + 1, frames.length + 1, `Rendering frame ${i + 1}/${frames.length}...`)
+            onProgress?.(i + 1, exportTotal, `Rendering frame ${i + 1}/${frames.length}...`)
+            await yieldToBrowser()
             await renderFrame(i)
             const frameData = canvasToUint8Array(renderer.domElement)
             pngFrames.push(frameData)
@@ -146,17 +150,27 @@ const ExportCapture = forwardRef(function ExportCapture(_, ref) {
               frameCount: frames.length,
               size: frameData.byteLength,
             })
+            await yieldToBrowser()
           }
 
-          onProgress?.(frames.length, frames.length + 1, 'Encoding MP4 (first time may take a moment)...')
+          onProgress?.(frames.length + 1, exportTotal, 'Preparing MP4 frames...')
+          await yieldToBrowser()
           let mp4Blob
           try {
-            mp4Blob = await encodePngsToMp4(pngFrames, fps, logger)
+            mp4Blob = await encodePngsToMp4(pngFrames, fps, logger, (current, total) => {
+              const writingDone = current >= total
+              onProgress?.(
+                frames.length + current + 1,
+                frames.length + total + 2,
+                writingDone ? 'Encoding MP4...' : `Preparing MP4 frame ${current}/${total}...`,
+              )
+            })
           } catch (encodeErr) {
             logger?.error('ffmpeg mp4 encode failed, trying mediarecorder fallback', {
               message: encodeErr?.message || 'Unknown encode error',
             })
             onProgress?.(frames.length, frames.length + 1, 'Encoding failed — trying browser recorder...')
+            await yieldToBrowser()
             mp4Blob = await recordVideo(
               renderer.domElement,
               frames.length,
@@ -179,7 +193,8 @@ const ExportCapture = forwardRef(function ExportCapture(_, ref) {
 
         // PNG sequence
         for (let i = 0; i < frames.length; i++) {
-          onProgress?.(i + 1, frames.length, 'Capturing frames...')
+          onProgress?.(i + 1, frames.length, `Capturing frame ${i + 1}/${frames.length}...`)
+          await yieldToBrowser()
           await renderFrame(i)
           const blob = await canvasToBlob(renderer.domElement)
           logger?.info('png frame captured', {
@@ -189,6 +204,7 @@ const ExportCapture = forwardRef(function ExportCapture(_, ref) {
             size: blob?.size ?? 0,
           })
           downloadBlob(blob, `frame-${String(i + 1).padStart(3, '0')}.png`)
+          await yieldToBrowser()
         }
       } finally {
         if (voxelGroup) {
