@@ -110,6 +110,7 @@ export default function VoxelizerModal({ onClose }) {
       setVoxels(voxels)
       setStatus('done')
       setProgress(100)
+      onClose()
     } catch (err) {
       setStatus('error')
       setErrorMsg(err?.message || 'Image conversion failed.')
@@ -249,6 +250,7 @@ export default function VoxelizerModal({ onClose }) {
       setAllFrames(allFramesVoxels)
       setProgress(100)
       setStatus('done')
+      onClose()
 
     } catch (err) {
       setStatus('error')
@@ -292,6 +294,7 @@ export default function VoxelizerModal({ onClose }) {
           setStatus('done')
           setProgress(100)
           worker.terminate()
+          onClose()
         }
       }
 

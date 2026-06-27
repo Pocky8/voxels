@@ -201,7 +201,9 @@ export default function App() {
         onGreenscreenOpen={() => setShowGreenscreen(true)}
         onSketchOpen={() => setShowSketch(true)}
       />
-      <TimelinePanel />
+      <TimelinePanel 
+        onGreenscreenOpen={() => setShowGreenscreen(true)}
+      />
 
       <div className="canvas-wrapper">
         <Canvas
