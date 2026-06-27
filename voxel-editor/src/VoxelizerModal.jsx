@@ -9,7 +9,7 @@ export default function VoxelizerModal({ onClose }) {
   const [mode, setMode] = useState('image')
   const [resolution, setResolution] = useState(20)
   const [imageSize, setImageSize] = useState(32)
-  const [skipLightBackground, setSkipLightBackground] = useState(true)
+  const [bgRemoval, setBgRemoval] = useState('white_grey')
   const [alphaThreshold, setAlphaThreshold] = useState(128)
   const [pixelPerfect, setPixelPerfect] = useState(false)
   const [color, setColor] = useState('#4f9cf9')
@@ -61,9 +61,20 @@ export default function VoxelizerModal({ onClose }) {
         const g = data[i + 1]
         const b = data[i + 2]
         const a = data[i + 3]
-        const isLightBackground = skipLightBackground && r > 238 && g > 238 && b > 238
+        
+        const isGrayscale = Math.abs(r - g) < 15 && Math.abs(g - b) < 15
+        const isWhiteGreyGrid = isGrayscale && r > 180
+        const isBlackWhiteGrid = isGrayscale // Grayscale removal covers black/white/grey grids
+        const isSolidBlack = r < 30 && g < 30 && b < 30
+        const isSolidWhite = r > 240 && g > 240 && b > 240
 
-        if (a < alphaThreshold || isLightBackground) continue
+        let skip = false
+        if (bgRemoval === 'white_grey' && isWhiteGreyGrid) skip = true
+        if (bgRemoval === 'black_white_grid' && isBlackWhiteGrid) skip = true
+        if (bgRemoval === 'black' && isSolidBlack) skip = true
+        if (bgRemoval === 'white' && isSolidWhite) skip = true
+
+        if (a < alphaThreshold || skip) continue
 
         voxels.push({
           id: id++,
@@ -440,16 +451,27 @@ export default function VoxelizerModal({ onClose }) {
                 />
               </div>
 
+              <div className="modal__field">
+                <label className="modal__field-label">Background Removal</label>
+                <select 
+                  className="modal__select" 
+                  value={bgRemoval} 
+                  onChange={(e) => setBgRemoval(e.target.value)}
+                  disabled={status === 'running'}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', background: 'var(--ui-bg)', color: 'var(--text-primary)', border: '1px solid var(--ui-border)' }}
+                >
+                  <option value="none">None (Keep all opaque pixels)</option>
+                  <option value="white_grey">Remove Fake Transparency (White/Grey Grid)</option>
+                  <option value="black_white_grid">Remove Any Grayscale (Black/White/Grey Grid)</option>
+                  <option value="white">Remove Solid White</option>
+                  <option value="black">Remove Solid Black</option>
+                </select>
+                <span className="modal__field-hint" style={{ marginTop: '6px', display: 'block' }}>
+                  Useful for images downloaded with fake checkerboard backgrounds.
+                </span>
+              </div>
+
               <div className="modal__checkbox-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label className="modal__checkbox">
-                  <input
-                    type="checkbox"
-                    checked={skipLightBackground}
-                    onChange={(e) => setSkipLightBackground(e.target.checked)}
-                    disabled={status === 'running'}
-                  />
-                  <span>Clean white background</span>
-                </label>
                 <label className="modal__checkbox">
                   <input
                     type="checkbox"
