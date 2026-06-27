@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useVoxelStore } from './store'
 import { exportUnityCS, exportGodotGD, exportGLTF } from './exporters'
-import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette } from 'lucide-react'
+import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette, Trash2 } from 'lucide-react'
 import './Toolbar.css'
 
 const PALETTE = [
@@ -62,14 +62,10 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
       ════════════════════════════════════════ */}
       <aside className="sidebar">
 
-        {/* Brand + undo/redo */}
+        {/* Brand */}
         <header className="sb-brand">
           <div className="sb-brand__text">
-            <p className="sb-brand__name">SpriteForge</p>
-          </div>
-          <div className="sb-brand__actions">
-            <button className="icon-btn" onClick={undo} disabled={past.length === 0 || isExporting} title="Undo (Ctrl+Z)"><Undo2 size={16} strokeWidth={2.5} /></button>
-            <button className="icon-btn" onClick={redo} disabled={future.length === 0 || isExporting} title="Redo (Ctrl+Y)"><Redo2 size={16} strokeWidth={2.5} /></button>
+            <p className="sb-brand__name">UnFlat</p>
           </div>
         </header>
 
@@ -137,22 +133,7 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
           </button>
         </div>
 
-        {/* ── Export ── */}
-        <div className="sb-section sb-section--grow">
-          <p className="sb-label">Export</p>
-          <button type="button" className="act-btn act-btn--accent"
-            onClick={onGreenscreenOpen}
-            disabled={frames.every(f => f.length === 0) || isExporting}>
-            Greenscreen animation
-          </button>
-          <div className="act-row">
-            <button className="act-btn" onClick={() => exportUnityCS(voxels)} disabled={voxels.length === 0}>Unity C#</button>
-            <button className="act-btn" onClick={() => exportGodotGD(voxels)} disabled={voxels.length === 0}>Godot GD</button>
-          </div>
-          <button className="act-btn" onClick={handleGLTF} disabled={voxels.length === 0 || exporting}>
-            {exporting ? 'Exporting…' : 'GLTF / GLB'}
-          </button>
-        </div>
+
 
         {/* ── Frame ── */}
         <div className="sb-section">
@@ -180,10 +161,20 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
         <button type="button" className={`dock-btn ${colorOpen ? 'dock-btn--on' : ''}`}
           onClick={() => { setColorOpen(v => !v); setMoreOpen(false) }}>
           <span className="dock-btn__swatch" style={{ background: activeColor }} />
+          <span className="dock-btn__lbl">Color</span>
         </button>
         <button type="button" className="dock-btn"
-          onClick={() => { onSketchOpen(); closeSheets() }}>
-          <span className="dock-btn__ico"><PenTool size={20} strokeWidth={2.5} /></span>
+          onClick={() => { undo(); closeSheets() }} disabled={past.length === 0 || isExporting}>
+          <span className="dock-btn__ico"><Undo2 size={20} strokeWidth={2.5} /></span>
+        </button>
+        <button type="button" className="dock-btn"
+          onClick={() => { redo(); closeSheets() }} disabled={future.length === 0 || isExporting}>
+          <span className="dock-btn__ico"><Redo2 size={20} strokeWidth={2.5} /></span>
+        </button>
+        <button type="button" className="dock-btn"
+          onClick={() => { if (window.confirm('Clear all voxels in this frame?')) { clearCanvas(); closeSheets() } }}
+          disabled={voxels.length === 0}>
+          <span className="dock-btn__ico"><Trash2 size={18} strokeWidth={2.5} /></span>
         </button>
         <button type="button" className={`dock-btn ${moreOpen ? 'dock-btn--on' : ''}`}
           onClick={() => { setMoreOpen(v => !v); setColorOpen(false) }}>
@@ -230,16 +221,10 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
               </button>
             </div>
 
-            <p className="sheet__sec">History</p>
-            <div className="act-row">
-              <button className="act-btn" onClick={() => { undo(); setMoreOpen(false) }} disabled={past.length === 0}>Undo</button>
-              <button className="act-btn" onClick={() => { redo(); setMoreOpen(false) }} disabled={future.length === 0}>Redo</button>
-            </div>
-
             <p className="sheet__sec">Create</p>
             <button type="button" className="feat-btn feat-btn--primary"
               onClick={() => { onSketchOpen(); setMoreOpen(false) }}>
-              <span className="feat-btn__icon">✍</span>
+              <span className="feat-btn__icon"><PenTool size={18} strokeWidth={2.5} /></span>
               <span className="feat-btn__body">
                 <span className="feat-btn__title">Sketch to Voxel</span>
                 <span className="feat-btn__sub">Draw and convert to 3D</span>
@@ -247,7 +232,7 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
             </button>
             <button type="button" className="feat-btn"
               onClick={() => { onVoxelizerOpen(); setMoreOpen(false) }}>
-              <span className="feat-btn__icon">⬆</span>
+              <span className="feat-btn__icon"><Download size={18} strokeWidth={2.5} /></span>
               <span className="feat-btn__body">
                 <span className="feat-btn__title">Import Voxels</span>
                 <span className="feat-btn__sub">From image or mesh</span>
@@ -266,12 +251,6 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
             </div>
             <button className="act-btn" onClick={() => { handleGLTF(); setMoreOpen(false) }} disabled={voxels.length === 0 || exporting}>
               {exporting ? 'Exporting…' : 'GLTF / GLB'}
-            </button>
-
-            <p className="sheet__sec">Frame</p>
-            <button className="act-btn act-btn--danger" disabled={voxels.length === 0}
-              onClick={() => { if (window.confirm('Clear all voxels?')) { clearCanvas(); setMoreOpen(false) } }}>
-              Clear frame
             </button>
           </div>
         </div>

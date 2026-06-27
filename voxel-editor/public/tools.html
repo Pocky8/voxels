@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Unflat - 3D Voxel Editor, Pixel Editor & ASCII Editor</title>
+  <meta name="description" content="Discover Unflat, the ultimate blender in browser alternative. Your go-to 3D editor, voxel editor, pixel editor, and ASCII editor right in your web browser." />
+  <meta name="keywords" content="voxel editor, 3d editor, pixel editor, ascii editor, blender in browser, 3d modeling, game dev tools, unflat" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  
+  <meta property="og:title" content="Unflat - 3D Voxel Editor & Pixel Editor" />
+  <meta property="og:description" content="The ultimate voxel editor, 3D editor, and pixel editor right in your browser. Start creating instantly." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Unflat - Free Browser 3D Editor" />
+  <meta name="twitter:description" content="Create stunning voxel and pixel art right in your browser." />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@700&display=swap');
+
+    :root {
+      --bg: #1a1a24;
+      --text: #f9f9f6;
+      --text-muted: #a0a0b0;
+      --magenta: #e879f9;
+      --cyan: #4cc9f0;
+      --yellow: #f9c74f;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navbar */
+    header {
+      padding: 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .brand {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--cyan);
+      box-shadow: 3px 3px 0 var(--magenta);
+      border: 2px solid var(--bg);
+    }
+
+    .cta-btn {
+      display: inline-block;
+      background: var(--magenta);
+      color: var(--bg);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 4px 4px 0 var(--cyan);
+      border: 2px solid var(--bg);
+    }
+
+    .cta-btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--cyan);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 100px 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(232,121,249,0.15) 0%, rgba(26,26,36,0) 70%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .hero h1 {
+      font-size: clamp(48px, 8vw, 80px);
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--text) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+
+    /* Grid Section */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      padding: 60px 0 100px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 32px;
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--cyan);
+    }
+
+    .feature-card h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: var(--yellow);
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    footer a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <a href="/" class="brand">
+        <div class="brand-icon"></div>
+        Unflat
+      </a>
+      <a href="/" class="cta-btn">Launch Editor</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-glow"></div>
+        <h1>The Ultimate 3D Editor<br/>in Your Browser</h1>
+        <p>Whether you're looking for a voxel editor, pixel editor, or an ascii editor, Unflat brings powerful 3D modeling directly to the web without the heavy downloads.</p>
+        <a href="/" class="cta-btn" style="font-size: 18px; padding: 16px 32px;">Start Creating Now</a>
+      </section>
+
+      <section class="features-grid">
+        <article class="feature-card">
+          <h2>Powerful Voxel Editor</h2>
+          <p>Unflat is a state-of-represented <strong>voxel editor</strong> that allows you to sculpt, paint, and animate 3D volumes effortlessly. Perfect for indie game developers and digital artists looking to create retro-style 3D art.</p>
+        </article>
+
+        <article class="feature-card">
+          <h2>The "Blender in Browser" Alternative</h2>
+          <p>Tired of downloading massive software packages? Unflat is often described as a lightweight <strong>blender in browser</strong>. Get instant access to essential 3D modeling tools without the steep learning curve.</p>
+        </article>
+
+        <article class="feature-card">
+          <h2>Advanced 3D Editor</h2>
+          <p>Our <strong>3D editor</strong> engine is powered by WebGL, giving you native-like performance. Export directly to GLTF, Unity, and Godot with zero friction.</p>
+        </article>
+
+        <article class="feature-card">
+          <h2>Intuitive Pixel Editor</h2>
+          <p>Transform 2D art into 3D masterpieces. Our integrated <strong>pixel editor</strong> workflows allow you to draw flat pixels and instantly extrude them into full 3D models.</p>
+        </article>
+
+        <article class="feature-card">
+          <h2>ASCII Editor Integrations</h2>
+          <p>Push the boundaries of retro aesthetics. While Unflat focuses on voxels, its grid-based engine shares the same philosophy as a classic <strong>ascii editor</strong>, enabling unique text-to-voxel experiments.</p>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Unflat Editor. <a href="/">Open App</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

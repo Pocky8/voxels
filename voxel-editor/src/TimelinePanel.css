@@ -163,6 +163,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   transition: transform 0.1s, box-shadow 0.1s;
   box-shadow: 2px 2px 0 var(--shadow-color);
   font-family: inherit;
@@ -170,6 +171,11 @@
 
 .timeline__action:hover:not(:disabled) {
   background: var(--cmyk-yellow);
+}
+
+.timeline__action--danger:hover:not(:disabled) {
+  background: var(--cmyk-magenta);
+  color: var(--ui-bg);
 }
 
 .timeline__action:active:not(:disabled) {
@@ -182,6 +188,19 @@
   box-shadow: 0 0 0 var(--shadow-color);
   transform: translate(2px, 2px);
   cursor: default;
+}
+
+.timeline__exports {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline__divider {
+  width: var(--border-width);
+  height: 24px;
+  background: var(--ui-border);
+  margin: 0 8px;
 }
 
 @media (max-width: 760px) {
@@ -219,5 +238,9 @@
 
   .timeline__actions {
     align-items: flex-end;
+  }
+
+  .timeline__exports {
+    display: none;
   }
 }

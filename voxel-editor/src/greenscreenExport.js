@@ -131,6 +131,12 @@ export function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url)
 }
 
+export function yieldToBrowser() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => setTimeout(resolve, 0))
+  })
+}
+
 /**
  * Convert a canvas to a PNG Uint8Array using toDataURL (base64).
  * This avoids Blob which can lose data in cross-origin-isolated contexts.
@@ -308,7 +314,7 @@ async function runFfmpegMp4Encode(ffmpeg, fps, logger) {
  * @param {object} [logger] - Optional logger
  * @returns {Promise<Blob>} - MP4 blob
  */
-export async function encodePngsToMp4(pngFrames, fps, logger) {
+export async function encodePngsToMp4(pngFrames, fps, logger, onProgress) {
   const ffmpeg = await getFfmpeg(logger)
   await cleanupFfmpegFilesystem(ffmpeg, pngFrames.length)
 
@@ -322,6 +328,8 @@ export async function encodePngsToMp4(pngFrames, fps, logger) {
     }
 
     await ffmpeg.writeFile(filename, frameBytes)
+    onProgress?.(i + 1, pngFrames.length)
+    await yieldToBrowser()
 
     const verified = await ffmpeg.readFile(filename)
     logger?.info('verified frame in ffmpeg fs', {
@@ -334,6 +342,8 @@ export async function encodePngsToMp4(pngFrames, fps, logger) {
     }
   }
 
+  onProgress?.(pngFrames.length, pngFrames.length)
+  await yieldToBrowser()
   await runFfmpegMp4Encode(ffmpeg, fps, logger)
 
   const data = await ffmpeg.readFile('output.mp4')

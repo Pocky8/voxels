@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 import { useVoxelStore } from './store'
-import { parseGIF, decompressFrames } from 'gifuct-js'
 import './VoxelizerModal.css'
 
 export default function VoxelizerModal({ onClose }) {
@@ -110,6 +109,7 @@ export default function VoxelizerModal({ onClose }) {
       setVoxels(voxels)
       setStatus('done')
       setProgress(100)
+      onClose()
     } catch (err) {
       setStatus('error')
       setErrorMsg(err?.message || 'Image conversion failed.')
@@ -179,6 +179,7 @@ export default function VoxelizerModal({ onClose }) {
         URL.revokeObjectURL(video.src)
       } else {
         const buffer = await file.arrayBuffer()
+        const { parseGIF, decompressFrames } = await import('gifuct-js')
         const gif = parseGIF(buffer)
         const frames = decompressFrames(gif, true)
         
@@ -249,6 +250,7 @@ export default function VoxelizerModal({ onClose }) {
       setAllFrames(allFramesVoxels)
       setProgress(100)
       setStatus('done')
+      onClose()
 
     } catch (err) {
       setStatus('error')
@@ -292,6 +294,7 @@ export default function VoxelizerModal({ onClose }) {
           setStatus('done')
           setProgress(100)
           worker.terminate()
+          onClose()
         }
       }
 
