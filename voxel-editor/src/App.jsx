@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { GizmoHelper, GizmoViewport } from '@react-three/drei'
 import { useVoxelStore } from './store'
@@ -7,9 +7,10 @@ import SceneControls from './SceneControls'
 import ExportCapture from './ExportCapture'
 import Toolbar from './Toolbar'
 import TimelinePanel from './TimelinePanel'
-import VoxelizerModal from './VoxelizerModal'
-import GreenscreenExportModal from './GreenscreenExportModal'
-import SketchModal from './SketchModal'
+
+const VoxelizerModal = lazy(() => import('./VoxelizerModal'))
+const GreenscreenExportModal = lazy(() => import('./GreenscreenExportModal'))
+const SketchModal = lazy(() => import('./SketchModal'))
 
 export default function App() {
   const voxels = useVoxelStore((s) => s.voxels)
@@ -275,21 +276,27 @@ export default function App() {
       </div>
 
       {showVoxelizer && (
-        <VoxelizerModal onClose={() => setShowVoxelizer(false)} />
+        <Suspense fallback={null}>
+          <VoxelizerModal onClose={() => setShowVoxelizer(false)} />
+        </Suspense>
       )}
 
       {showSketch && (
-        <SketchModal onClose={() => setShowSketch(false)} />
+        <Suspense fallback={null}>
+          <SketchModal onClose={() => setShowSketch(false)} />
+        </Suspense>
       )}
 
       {showGreenscreen && (
-        <GreenscreenExportModal
-          frameCount={frames.length}
-          onClose={() => setShowGreenscreen(false)}
-          onExport={async (opts) => {
-            await handleGreenscreenExport(opts)
-          }}
-        />
+        <Suspense fallback={null}>
+          <GreenscreenExportModal
+            frameCount={frames.length}
+            onClose={() => setShowGreenscreen(false)}
+            onExport={async (opts) => {
+              await handleGreenscreenExport(opts)
+            }}
+          />
+        </Suspense>
       )}
     </>
   )

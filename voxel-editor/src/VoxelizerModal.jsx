@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 import { useVoxelStore } from './store'
-import { parseGIF, decompressFrames } from 'gifuct-js'
 import './VoxelizerModal.css'
 
 export default function VoxelizerModal({ onClose }) {
@@ -180,6 +179,7 @@ export default function VoxelizerModal({ onClose }) {
         URL.revokeObjectURL(video.src)
       } else {
         const buffer = await file.arrayBuffer()
+        const { parseGIF, decompressFrames } = await import('gifuct-js')
         const gif = parseGIF(buffer)
         const frames = decompressFrames(gif, true)
         
