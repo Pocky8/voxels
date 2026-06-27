@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { GizmoHelper, GizmoViewport } from '@react-three/drei'
 import { useVoxelStore } from './store'
@@ -7,9 +7,10 @@ import SceneControls from './SceneControls'
 import ExportCapture from './ExportCapture'
 import Toolbar from './Toolbar'
 import TimelinePanel from './TimelinePanel'
-import VoxelizerModal from './VoxelizerModal'
-import GreenscreenExportModal from './GreenscreenExportModal'
-import SketchModal from './SketchModal'
+
+const VoxelizerModal = lazy(() => import('./VoxelizerModal'))
+const GreenscreenExportModal = lazy(() => import('./GreenscreenExportModal'))
+const SketchModal = lazy(() => import('./SketchModal'))
 
 export default function App() {
   const voxels = useVoxelStore((s) => s.voxels)
@@ -39,16 +40,18 @@ export default function App() {
   const lastFloorCellRef = useRef(null)   // { x, z } integer cell coords
   const exportCaptureRef = useRef(null)
 
-  const gridExtent = Math.max(
-    40,
-    Math.ceil(
-      voxels.reduce((max, voxel) => {
-        const [x, , z] = voxel.position
-        return Math.max(max, Math.abs(x), Math.abs(z))
-      }, 0) * 2 + 4
+  const gridSize = useMemo(() => {
+    const gridExtent = Math.max(
+      40,
+      Math.ceil(
+        voxels.reduce((max, voxel) => {
+          const [x, , z] = voxel.position
+          return Math.max(max, Math.abs(x), Math.abs(z))
+        }, 0) * 2 + 4
+      )
     )
-  )
-  const gridSize = gridExtent % 2 === 0 ? gridExtent : gridExtent + 1
+    return gridExtent % 2 === 0 ? gridExtent : gridExtent + 1
+  }, [voxels])
   const gridHalf = gridSize / 2
 
   useEffect(() => {
@@ -199,7 +202,9 @@ export default function App() {
         onGreenscreenOpen={() => setShowGreenscreen(true)}
         onSketchOpen={() => setShowSketch(true)}
       />
-      <TimelinePanel />
+      <TimelinePanel 
+        onGreenscreenOpen={() => setShowGreenscreen(true)}
+      />
 
       <div className="canvas-wrapper">
         <Canvas
@@ -271,21 +276,27 @@ export default function App() {
       </div>
 
       {showVoxelizer && (
-        <VoxelizerModal onClose={() => setShowVoxelizer(false)} />
+        <Suspense fallback={null}>
+          <VoxelizerModal onClose={() => setShowVoxelizer(false)} />
+        </Suspense>
       )}
 
       {showSketch && (
-        <SketchModal onClose={() => setShowSketch(false)} />
+        <Suspense fallback={null}>
+          <SketchModal onClose={() => setShowSketch(false)} />
+        </Suspense>
       )}
 
       {showGreenscreen && (
-        <GreenscreenExportModal
-          frameCount={frames.length}
-          onClose={() => setShowGreenscreen(false)}
-          onExport={async (opts) => {
-            await handleGreenscreenExport(opts)
-          }}
-        />
+        <Suspense fallback={null}>
+          <GreenscreenExportModal
+            frameCount={frames.length}
+            onClose={() => setShowGreenscreen(false)}
+            onExport={async (opts) => {
+              await handleGreenscreenExport(opts)
+            }}
+          />
+        </Suspense>
       )}
     </>
   )

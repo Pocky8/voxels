@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 
 // ─── Unity C# ────────────────────────────────────────────────────────────────
 export function exportUnityCS(voxels) {
@@ -76,6 +75,7 @@ export function exportGodotGD(voxels) {
 
 // ─── GLTF ────────────────────────────────────────────────────────────────────
 export async function exportGLTF(voxels) {
+  const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js')
   const group = new THREE.Group()
   const geo = new THREE.BoxGeometry(1, 1, 1)
 

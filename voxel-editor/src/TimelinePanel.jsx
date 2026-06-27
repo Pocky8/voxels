@@ -1,22 +1,58 @@
+import { useState } from 'react'
 import { useVoxelStore } from './store'
-import { Play, Square, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { Play, Square, ChevronLeft, ChevronRight, Plus, Trash2, Video, Box, Layers, Code, Undo2, Redo2 } from 'lucide-react'
+import { exportUnityCS, exportGodotGD, exportGLTF } from './exporters'
 import './TimelinePanel.css'
 
-export default function TimelinePanel() {
+export default function TimelinePanel({ onGreenscreenOpen }) {
   const frames = useVoxelStore((s) => s.frames)
   const currentFrame = useVoxelStore((s) => s.currentFrame)
   const isPlaying = useVoxelStore((s) => s.isPlaying)
-  const voxels = useVoxelStore((s) => s.voxels)
   const fps = useVoxelStore((s) => s.fps)
+  const voxels = useVoxelStore((s) => s.voxels)
+  const isExportingStore = useVoxelStore((s) => s.isExporting)
+  const past = useVoxelStore((s) => s.past)
+  const future = useVoxelStore((s) => s.future)
+  const undo = useVoxelStore((s) => s.undo)
+  const redo = useVoxelStore((s) => s.redo)
   const setCurrentFrame = useVoxelStore((s) => s.setCurrentFrame)
   const setFps = useVoxelStore((s) => s.setFps)
   const addFrameAfterCurrent = useVoxelStore((s) => s.addFrameAfterCurrent)
   const removeCurrentFrame = useVoxelStore((s) => s.removeCurrentFrame)
   const togglePlayback = useVoxelStore((s) => s.togglePlayback)
 
+  const [exportingGltf, setExportingGltf] = useState(false)
+
+  const handleGLTF = async () => {
+    setExportingGltf(true)
+    await exportGLTF(voxels)
+    setExportingGltf(false)
+  }
+
   return (
     <footer className="timeline">
       <div className="timeline__transport">
+        <button
+          type="button"
+          className="timeline__btn"
+          onClick={undo}
+          disabled={past.length === 0 || isPlaying}
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo2 size={20} strokeWidth={2.5} />
+        </button>
+        <button
+          type="button"
+          className="timeline__btn"
+          onClick={redo}
+          disabled={future.length === 0 || isPlaying}
+          title="Redo (Ctrl+Y)"
+        >
+          <Redo2 size={20} strokeWidth={2.5} />
+        </button>
+        
+        <div className="timeline__divider" />
+
         <button
           type="button"
           className="timeline__btn"
@@ -43,9 +79,6 @@ export default function TimelinePanel() {
         >
           <ChevronRight size={20} strokeWidth={3} />
         </button>
-        <span className="timeline__counter">
-          {currentFrame + 1} / {frames.length}
-        </span>
       </div>
 
       <div className="timeline__frames">
@@ -73,7 +106,30 @@ export default function TimelinePanel() {
       </div>
 
       <div className="timeline__actions">
-        <span className="timeline__stat">{voxels.length} voxels</span>
+        <div className="timeline__exports">
+          <button className="timeline__action" title="Export MP4/Greenscreen" 
+            onClick={onGreenscreenOpen} disabled={frames.every(f => f.length === 0) || isExportingStore}>
+            <Video size={16} strokeWidth={2.5} />
+            <span>MP4</span>
+          </button>
+          <button className="timeline__action" title="Export GLTF/GLB" 
+            onClick={handleGLTF} disabled={voxels.length === 0 || exportingGltf}>
+            <Box size={16} strokeWidth={2.5} />
+            <span>GLTF</span>
+          </button>
+          <button className="timeline__action" title="Export Unity C#" 
+            onClick={() => exportUnityCS(voxels)} disabled={voxels.length === 0}>
+            <Layers size={16} strokeWidth={2.5} />
+            <span>Unity</span>
+          </button>
+          <button className="timeline__action" title="Export Godot GD" 
+            onClick={() => exportGodotGD(voxels)} disabled={voxels.length === 0}>
+            <Code size={16} strokeWidth={2.5} />
+            <span>Godot</span>
+          </button>
+          <div className="timeline__divider" />
+        </div>
+
         <label className="timeline__fps" title="Playback and export FPS">
           <span>FPS</span>
           <select
@@ -88,7 +144,7 @@ export default function TimelinePanel() {
         </label>
         <button
           type="button"
-          className="timeline__action"
+          className="timeline__action timeline__action--danger"
           onClick={removeCurrentFrame}
           disabled={frames.length <= 1 || isPlaying}
           title="Remove frame"
