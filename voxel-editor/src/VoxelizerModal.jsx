@@ -426,7 +426,7 @@ export default function VoxelizerModal({ onClose }) {
                   id="image-size"
                   type="range"
                   min={12}
-                  max={64}
+                  max={128}
                   value={imageSize}
                   onChange={(e) => setImageSize(Number(e.target.value))}
                   disabled={status === 'running'}

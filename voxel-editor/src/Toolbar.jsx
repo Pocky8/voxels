@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useVoxelStore } from './store'
 import { exportUnityCS, exportGodotGD, exportGLTF } from './exporters'
-import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette, Trash2 } from 'lucide-react'
+import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette, Trash2, Scan } from 'lucide-react'
 import './Toolbar.css'
 
 const PALETTE = [
@@ -10,7 +10,7 @@ const PALETTE = [
   '#94a3b8', '#1e293b',
 ]
 
-export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen }) {
+export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen, onHologramOpen }) {
   const voxels      = useVoxelStore(s => s.voxels)
   const activeTool  = useVoxelStore(s => s.activeTool)
   const activeColor = useVoxelStore(s => s.activeColor)
@@ -135,6 +135,19 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
 
 
 
+        {/* ── Export ── */}
+        <div className="sb-section">
+          <p className="sb-label">Export</p>
+          <button type="button" className="feat-btn" onClick={onHologramOpen}
+            disabled={voxels.length === 0 || isExporting}>
+            <span className="feat-btn__icon"><Scan size={20} strokeWidth={2.5} /></span>
+            <span className="feat-btn__body">
+              <span className="feat-btn__title">Hologram Export</span>
+              <span className="feat-btn__sub">3D hologram on greenscreen</span>
+            </span>
+          </button>
+        </div>
+
         {/* ── Frame ── */}
         <div className="sb-section">
           <button type="button" className="act-btn act-btn--danger"
@@ -244,6 +257,11 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
               onClick={() => { onGreenscreenOpen(); setMoreOpen(false) }}
               disabled={frames.every(f => f.length === 0) || isExporting}>
               Greenscreen animation
+            </button>
+            <button className="act-btn act-btn--accent" style={{ marginTop: '8px' }}
+              onClick={() => { onHologramOpen(); setMoreOpen(false) }}
+              disabled={voxels.length === 0 || isExporting}>
+              Hologram Export
             </button>
             <div className="act-row">
               <button className="act-btn" onClick={() => { exportUnityCS(voxels); setMoreOpen(false) }} disabled={voxels.length === 0}>Unity C#</button>
