@@ -12,6 +12,7 @@ const VoxelizerModal = lazy(() => import('./VoxelizerModal'))
 const GreenscreenExportModal = lazy(() => import('./GreenscreenExportModal'))
 const SketchModal = lazy(() => import('./SketchModal'))
 const HologramExportModal = lazy(() => import('./HologramExportModal'))
+const OrbitExportModal = lazy(() => import('./OrbitExportModal'))
 
 export default function App() {
   const voxels = useVoxelStore((s) => s.voxels)
@@ -35,6 +36,7 @@ export default function App() {
   const [showGreenscreen, setShowGreenscreen] = useState(false)
   const [showSketch, setShowSketch] = useState(false)
   const [showHologram, setShowHologram] = useState(false)
+  const [showOrbit, setShowOrbit] = useState(false)
   const [isCoarsePointer, setIsCoarsePointer] = useState(
     () => window.matchMedia('(pointer: coarse)').matches
   )
@@ -204,6 +206,7 @@ export default function App() {
         onGreenscreenOpen={() => setShowGreenscreen(true)}
         onSketchOpen={() => setShowSketch(true)}
         onHologramOpen={() => setShowHologram(true)}
+        onOrbitOpen={() => setShowOrbit(true)}
       />
       <TimelinePanel 
         onGreenscreenOpen={() => setShowGreenscreen(true)}
@@ -307,6 +310,12 @@ export default function App() {
           <HologramExportModal
             onClose={() => setShowHologram(false)}
           />
+        </Suspense>
+      )}
+
+      {showOrbit && (
+        <Suspense fallback={null}>
+          <OrbitExportModal onClose={() => setShowOrbit(false)} />
         </Suspense>
       )}
     </>

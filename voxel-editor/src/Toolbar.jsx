@@ -10,7 +10,7 @@ const PALETTE = [
   '#94a3b8', '#1e293b',
 ]
 
-export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen, onHologramOpen }) {
+export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen, onHologramOpen, onOrbitOpen }) {
   const voxels      = useVoxelStore(s => s.voxels)
   const activeTool  = useVoxelStore(s => s.activeTool)
   const activeColor = useVoxelStore(s => s.activeColor)
@@ -146,6 +146,13 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
               <span className="feat-btn__sub">3D hologram on greenscreen</span>
             </span>
           </button>
+          <button type="button" className="feat-btn" onClick={onOrbitOpen} style={{ marginTop: 8 }}>
+            <span className="feat-btn__icon"><MonitorPlay size={20} strokeWidth={2.5} /></span>
+            <span className="feat-btn__body">
+              <span className="feat-btn__title">Orbit Animation</span>
+              <span className="feat-btn__sub">Floating objects on greenscreen</span>
+            </span>
+          </button>
         </div>
 
         {/* ── Frame ── */}
@@ -263,7 +270,12 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
               disabled={voxels.length === 0 || isExporting}>
               Hologram Export
             </button>
-            <div className="act-row">
+            <button className="act-btn act-btn--accent" style={{ marginTop: '8px' }}
+              onClick={() => { onOrbitOpen(); setMoreOpen(false) }}
+              disabled={isExporting}>
+              Orbit Animation
+            </button>
+            <div className="act-row" style={{ marginTop: '8px' }}>
               <button className="act-btn" onClick={() => { exportUnityCS(voxels); setMoreOpen(false) }} disabled={voxels.length === 0}>Unity C#</button>
               <button className="act-btn" onClick={() => { exportGodotGD(voxels); setMoreOpen(false) }} disabled={voxels.length === 0}>Godot GD</button>
             </div>
