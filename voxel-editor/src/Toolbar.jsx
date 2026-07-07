@@ -1,14 +1,30 @@
 import { useState } from 'react'
 import { useVoxelStore } from './store'
 import { exportUnityCS, exportGodotGD, exportGLTF } from './exporters'
-import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette, Trash2, Scan } from 'lucide-react'
+import { exportTopDownImage } from './snapshotExport'
+import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette, Trash2, Scan, Camera } from 'lucide-react'
 import './Toolbar.css'
 
 const PALETTE = [
-  '#f94144', '#f3722c', '#f9c74f', '#90be6d', '#4ade80',
-  '#4cc9f0', '#4f9cf9', '#818cf8', '#e879f9', '#ffffff',
-  '#94a3b8', '#1e293b',
+  '#000000', '#ffffff', '#888888',
+  '#ff003c', '#00e5ff', '#ffea00', '#00ff00',
+  '#4f9cf9', '#ff9900', '#ff00ff', '#8a2be2'
 ]
+
+/* ─── shared palette component ─── */
+const PaletteGrid = ({ onPick, activeColor, large }) => (
+  <div className={`palette ${large ? 'palette--lg' : ''}`}>
+    {PALETTE.map(c => (
+      <button
+        key={c} type="button"
+        className={`palette__swatch ${activeColor === c ? 'active' : ''}`}
+        style={{ background: c }}
+        onClick={() => onPick(c)}
+        title={c}
+      />
+    ))}
+  </div>
+)
 
 export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen, onHologramOpen, onOrbitOpen }) {
   const voxels      = useVoxelStore(s => s.voxels)
@@ -34,26 +50,18 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
 
   const handleGLTF = async () => {
     setExporting(true)
-    await exportGLTF(voxels)
-    setExporting(false)
+    try {
+      await exportGLTF(voxels)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleSnapshot = () => {
+    exportTopDownImage(voxels)
   }
 
   const closeSheets = () => { setMoreOpen(false); setColorOpen(false) }
-
-  /* ─── shared palette component ─── */
-  const PaletteGrid = ({ onPick, large }) => (
-    <div className={`palette ${large ? 'palette--lg' : ''}`}>
-      {PALETTE.map(c => (
-        <button
-          key={c} type="button"
-          className={`palette__swatch ${activeColor === c ? 'active' : ''}`}
-          style={{ background: c }}
-          onClick={() => onPick(c)}
-          title={c}
-        />
-      ))}
-    </div>
-  )
 
   return (
     <>
@@ -101,10 +109,10 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
 
         {/* ── Color ── */}
         <div className="sb-section">
-          <p className="sb-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <p className="sb-label">
             <Palette size={16} strokeWidth={3} /> Color
           </p>
-          <PaletteGrid onPick={setActiveColor} />
+          <PaletteGrid onPick={setActiveColor} activeColor={activeColor} />
           <div className="color-row">
             <input type="color" value={activeColor}
               onChange={e => setActiveColor(e.target.value)}
@@ -151,6 +159,13 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
             <span className="feat-btn__body">
               <span className="feat-btn__title">Orbit Animation</span>
               <span className="feat-btn__sub">Floating objects on greenscreen</span>
+            </span>
+          </button>
+          <button type="button" className="feat-btn" onClick={handleSnapshot} style={{ marginTop: 8 }}>
+            <span className="feat-btn__icon"><Camera size={20} strokeWidth={2.5} /></span>
+            <span className="feat-btn__body">
+              <span className="feat-btn__title">Export Image</span>
+              <span className="feat-btn__sub">Save current view as PNG</span>
             </span>
           </button>
         </div>
@@ -211,7 +226,7 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
           <div className="sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet__grip" />
             <p className="sheet__title">Color</p>
-            <PaletteGrid large onPick={c => { setActiveColor(c); setColorOpen(false) }} />
+            <PaletteGrid large activeColor={activeColor} onPick={c => { setActiveColor(c); setColorOpen(false) }} />
             <div className="color-row" style={{ marginTop: 10 }}>
               <input type="color" value={activeColor}
                 onChange={e => setActiveColor(e.target.value)}
@@ -260,12 +275,12 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
             </button>
 
             <p className="sheet__sec">Export</p>
-            <button className="act-btn act-btn--accent"
+            <button className="act-btn act-btn--yellow"
               onClick={() => { onGreenscreenOpen(); setMoreOpen(false) }}
               disabled={frames.every(f => f.length === 0) || isExporting}>
               Greenscreen animation
             </button>
-            <button className="act-btn act-btn--accent" style={{ marginTop: '8px' }}
+            <button className="act-btn act-btn--cyan" style={{ marginTop: '8px' }}
               onClick={() => { onHologramOpen(); setMoreOpen(false) }}
               disabled={voxels.length === 0 || isExporting}>
               Hologram Export
@@ -274,6 +289,11 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
               onClick={() => { onOrbitOpen(); setMoreOpen(false) }}
               disabled={isExporting}>
               Orbit Animation
+            </button>
+            <button className="act-btn act-btn--green" style={{ marginTop: '8px' }}
+              onClick={() => { handleSnapshot(); setMoreOpen(false) }}
+              disabled={isExporting}>
+              Export Image (PNG)
             </button>
             <div className="act-row" style={{ marginTop: '8px' }}>
               <button className="act-btn" onClick={() => { exportUnityCS(voxels); setMoreOpen(false) }} disabled={voxels.length === 0}>Unity C#</button>

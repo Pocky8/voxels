@@ -397,6 +397,21 @@
   color: #fff;
 }
 
+.act-btn--cyan {
+  background: var(--cmyk-cyan);
+  color: var(--text-primary);
+}
+
+.act-btn--yellow {
+  background: var(--cmyk-yellow);
+  color: var(--text-primary);
+}
+
+.act-btn--green {
+  background: #39ff14;
+  color: var(--text-primary);
+}
+
 .act-btn--danger {
   background: red;
   color: #fff;

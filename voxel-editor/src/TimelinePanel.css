@@ -243,4 +243,9 @@
   .timeline__exports {
     display: none;
   }
+
+  .timeline__btn--desktop,
+  .timeline__divider--desktop {
+    display: none;
+  }
 }

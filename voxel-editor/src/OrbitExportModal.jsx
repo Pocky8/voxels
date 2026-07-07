@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, lazy, Suspense } from 'react'
 import { createExportLogger } from './exportLogger'
 import { exportOrbitAnimation } from './orbitExport'
+import { processMediaFile } from './mediaVoxelizer'
 import './OrbitExportModal.css'
 
 const OrbitPreview = lazy(() => import('./OrbitPreview'))
@@ -11,6 +12,7 @@ export default function OrbitExportModal({ onClose }) {
   const [duration, setDuration] = useState(8)
   const [fps, setFps] = useState(24)
   const [format, setFormat] = useState('mp4')
+  const [clipBackHalf, setClipBackHalf] = useState(false)
   // Default per-image settings
   const [defaultSize, setDefaultSize] = useState(32)
   const [defaultDepth, setDefaultDepth] = useState(3)
@@ -23,74 +25,6 @@ export default function OrbitExportModal({ onClose }) {
   const revoxTimers = useRef({}) // debounce timers keyed by item id
 
   const maxItems = 7
-  const alphaThreshold = 128
-
-  const quantizeColor = (value) => Math.max(0, Math.min(255, Math.round(value / 17) * 17))
-  const toHex = (r, g, b) =>
-    `#${[r, g, b].map((v) => quantizeColor(v).toString(16).padStart(2, '0')).join('')}`
-
-  const loadImage = (file) => new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => resolve({ img, url })
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Could not read image.'))
-    }
-    img.src = url
-  })
-
-  /** Voxelize an image with the given size, depth, bgRemoval, and pixelPerfect. */
-  const voxelizeImage = (img, size, depth, bgRemoval = 'none', pixelPerfect = true) => {
-    const scale = Math.min(size / img.width, size / img.height)
-    const width = Math.max(1, Math.round(img.width * scale))
-    const height = Math.max(1, Math.round(img.height * scale))
-
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    ctx.imageSmoothingEnabled = !pixelPerfect
-    ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(img, 0, 0, width, height)
-
-    const imgData = ctx.getImageData(0, 0, width, height)
-    const data = imgData.data
-    const voxels = []
-    let id = 1
-    const originX = Math.floor(width / 2)
-    const originY = Math.floor(height / 2)
-
-    for (let row = 0; row < height; row++) {
-      for (let col = 0; col < width; col++) {
-        const i = (row * width + col) * 4
-        const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3]
-
-        // Background removal logic (matches VoxelizerModal)
-        const isGrayscale = Math.abs(r - g) < 15 && Math.abs(g - b) < 15
-        const isWhiteGrey = isGrayscale && r > 180
-        const isSolidBlack = r < 30 && g < 30 && b < 30
-        const isSolidWhite = r > 240 && g > 240 && b > 240
-
-        let skip = false
-        if (bgRemoval === 'white_grey' && isWhiteGrey) skip = true
-        if (bgRemoval === 'black_white_grid' && isGrayscale) skip = true
-        if (bgRemoval === 'black' && isSolidBlack) skip = true
-        if (bgRemoval === 'white' && isSolidWhite) skip = true
-
-        if (a < alphaThreshold || skip) continue
-
-        for (let z = 0; z < depth; z++) {
-          voxels.push({
-            id: id++,
-            position: [col - originX + 0.5, (height - row) - originY + 0.5, z - (depth / 2) + 0.5],
-            color: toHex(r, g, b),
-          })
-        }
-      }
-    }
-    return voxels
-  }
 
   const handleFilesAdded = async (e) => {
     const files = Array.from(e.target.files)
@@ -102,16 +36,16 @@ export default function OrbitExportModal({ onClose }) {
     const newItems = []
     for (const file of toProcess) {
       try {
-        const { img, url } = await loadImage(file)
-        const voxels = voxelizeImage(img, defaultSize, defaultDepth, 'none', true)
-
-        if (voxels.length > 0) {
+        const { frames, thumb, img } = await processMediaFile(file, defaultSize, defaultDepth, 'none', true)
+        
+        if (frames.length > 0 && frames[0].length > 0) {
           newItems.push({
             id: Math.random().toString(36).substr(2, 9),
             name: file.name,
-            thumb: url,
+            thumb: thumb,
             img,          // keep for re-voxelization
-            voxels,
+            voxels: frames[0], // base frame for UI count / backwards compat
+            frames,
             height: 0,
             radius: 25,
             size: defaultSize,
@@ -144,24 +78,45 @@ export default function OrbitExportModal({ onClose }) {
   const revoxKeys = ['size', 'depth', 'bgRemoval', 'pixelPerfect']
 
   const updateItem = useCallback((id, key, value) => {
-    // Always update the property immediately (slider feels responsive)
-    setItems((prev) => prev.map(item =>
-      item.id === id ? { ...item, [key]: value } : item
-    ))
+    setItems((prev) => {
+      const updated = prev.map(item =>
+        item.id === id ? { ...item, [key]: value } : item
+      )
 
-    // Debounce re-voxelization for expensive keys
-    if (revoxKeys.includes(key)) {
-      clearTimeout(revoxTimers.current[id])
-      revoxTimers.current[id] = setTimeout(() => {
-        setItems((prev) => prev.map(item => {
-          if (item.id !== id || !item.img) return item
-          return {
-            ...item,
-            voxels: voxelizeImage(item.img, item.size, item.depth, item.bgRemoval, item.pixelPerfect),
+      // Debounce re-voxelization for expensive keys
+      if (revoxKeys.includes(key)) {
+        clearTimeout(revoxTimers.current[id])
+        revoxTimers.current[id] = setTimeout(async () => {
+          // Find the item with its freshly updated settings
+          const itemToUpdate = updated.find(i => i.id === id)
+          if (!itemToUpdate || !itemToUpdate.img) return
+          
+          try {
+            // Re-voxelize using the updated parameters
+            const { frames } = await processMediaFile(
+              itemToUpdate.img, 
+              itemToUpdate.size, 
+              itemToUpdate.depth, 
+              itemToUpdate.bgRemoval, 
+              itemToUpdate.pixelPerfect
+            )
+            
+            setItems((prev2) => prev2.map(item => {
+              if (item.id !== id) return item
+              return {
+                ...item,
+                voxels: frames[0] || [],
+                frames,
+              }
+            }))
+          } catch (err) {
+            console.error("Re-voxelization failed", err)
           }
-        }))
-      }, 300)
-    }
+        }, 300)
+      }
+
+      return updated
+    })
   }, [])
 
   const handleExport = async () => {
@@ -176,6 +131,7 @@ export default function OrbitExportModal({ onClose }) {
     try {
       await exportOrbitAnimation({
         models: items,
+        clipBackHalf,
         duration,
         fps,
         format,
@@ -221,14 +177,16 @@ export default function OrbitExportModal({ onClose }) {
               <span className="orbit-upload__hint">
                 PNG, JPG, WEBP · Transparent backgrounds recommended
               </span>
+              <button className="orbit-add-btn" onClick={() => fileInputRef.current?.click()} disabled={items.length >= maxItems || exporting}>
+                + Add item (Image, GIF, MP4)
+              </button>
               <input
+                ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/*,image/gif,video/mp4,video/quicktime"
                 style={{ display: 'none' }}
                 onChange={handleFilesAdded}
-                ref={fileInputRef}
-                disabled={exporting}
               />
             </label>
           )}
@@ -432,6 +390,21 @@ export default function OrbitExportModal({ onClose }) {
                 PNG Sequence
               </button>
             </div>
+          </div>
+
+          {/* Compositing */}
+          <div className="orbit-field" style={{ flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+            <input
+              type="checkbox"
+              id="clipBackHalfOrbit"
+              checked={clipBackHalf}
+              onChange={(e) => setClipBackHalf(e.target.checked)}
+              disabled={exporting}
+              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--cmyk-magenta)' }}
+            />
+            <label htmlFor="clipBackHalfOrbit" className="orbit-field__label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none' }}>
+              Wrap around head (Clip back half)
+            </label>
           </div>
         </div>
 

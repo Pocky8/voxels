@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { downloadBlob } from './downloadHelper'
 
 export const CHROMA_GREEN = '#00b140'
 
@@ -120,15 +121,6 @@ export function canvasToBlob(canvas) {
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png')
   })
-}
-
-export function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 export function yieldToBrowser() {

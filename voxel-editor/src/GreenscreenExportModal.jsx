@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createExportLogger } from './exportLogger'
+import { downloadBlob } from './downloadHelper'
 import './GreenscreenExportModal.css'
 
 const PLANES = [
@@ -61,12 +62,7 @@ export default function GreenscreenExportModal({ onClose, onExport, frameCount }
   const handleDownloadLog = () => {
     if (!exportLog) return
     const blob = new Blob([exportLog], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'greenscreen-export-log.txt'
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, 'greenscreen-export-log.txt')
   }
 
   return (

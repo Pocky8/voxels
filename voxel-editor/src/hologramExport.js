@@ -4,15 +4,16 @@ import {
   canvasToUint8Array,
   encodePngsToMp4,
   recordVideo,
-  downloadBlob,
+  canvasToBlob,
   yieldToBrowser,
 } from './greenscreenExport'
+import { downloadBlob } from './downloadHelper'
 
 /**
  * Create a hologram-style material that preserves the original voxel color
  * but adds emissive glow and slight transparency for a holographic feel.
  */
-function createHologramMaterial(color) {
+function createHologramMaterial(color, clippingPlanes) {
   const c = new THREE.Color(color)
   return new THREE.MeshStandardMaterial({
     color: c,
@@ -22,13 +23,14 @@ function createHologramMaterial(color) {
     opacity: 0.82,
     roughness: 0.3,
     metalness: 0.1,
+    clippingPlanes: clippingPlanes || [],
   })
 }
 
 /**
  * Create a wireframe overlay mesh for a voxel — gives that digital/holographic edge look.
  */
-function createWireframeOverlay(voxel) {
+function createWireframeOverlay(voxel, clippingPlanes) {
   const geo = new THREE.BoxGeometry(1.005, 1.005, 1.005)
   const c = new THREE.Color(voxel.color || '#4f9cf9')
   // Brighten the wireframe color
@@ -41,6 +43,7 @@ function createWireframeOverlay(voxel) {
     wireframe: true,
     transparent: true,
     opacity: 0.35,
+    clippingPlanes: clippingPlanes || [],
   })
   const mesh = new THREE.Mesh(geo, mat)
   mesh.position.fromArray(voxel.position)
@@ -50,18 +53,18 @@ function createWireframeOverlay(voxel) {
 /**
  * Create a holographic voxel (solid + wireframe overlay).
  */
-function createHologramVoxel(voxel) {
+function createHologramVoxel(voxel, clippingPlanes) {
   const group = new THREE.Group()
 
   // Main voxel body — original color with glow
   const geo = new THREE.BoxGeometry(1, 1, 1)
-  const mat = createHologramMaterial(voxel.color || '#4f9cf9')
+  const mat = createHologramMaterial(voxel.color || '#4f9cf9', clippingPlanes)
   const mesh = new THREE.Mesh(geo, mat)
   mesh.position.fromArray(voxel.position)
   group.add(mesh)
 
-  // Wireframe overlay
-  group.add(createWireframeOverlay(voxel))
+  // Wireframe edge glow
+  group.add(createWireframeOverlay(voxel, clippingPlanes))
 
   return group
 }
@@ -144,6 +147,8 @@ function getVoxelBounds(voxels) {
  */
 export async function exportHologram({
   voxels,
+  frames,
+  clipBackHalf,
   duration,
   fps,
   pixelScale,
@@ -182,15 +187,29 @@ export async function exportHologram({
   frontLight.position.set(5, 8, 10)
   scene.add(frontLight)
 
-  // ── Model group (will be rotated) ──
+  // ── Setup Clipping for compositing ──
+  const clippingPlanes = []
+  if (clipBackHalf) {
+    // Normal points toward +Z (camera). Anything behind Z=0 (Z < 0) is clipped out.
+    clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0))
+  }
+
+  // ── Model group (will be rebuilt per frame if animated) ──
   const modelGroup = new THREE.Group()
-  for (const voxel of voxels) {
-    modelGroup.add(createHologramVoxel(voxel))
+  
+  // Use the first frame or base voxels for initial setup and bounds calculation
+  const initialVoxels = (frames && frames.length > 0) ? frames[0] : voxels
+  
+  for (const voxel of initialVoxels) {
+    modelGroup.add(createHologramVoxel(voxel, clippingPlanes))
   }
   scene.add(modelGroup)
 
   // ── Center the model ──
-  const bounds = getVoxelBounds(voxels)
+  // Calculate bounds across all frames to ensure stable camera distance and pivot
+  const bounds = getVoxelBounds(
+    (frames && frames.length > 0) ? frames.flat() : initialVoxels
+  )
   modelGroup.position.set(-bounds.center.x, -bounds.center.y, -bounds.center.z)
 
   // ── Stand up flat floor drawings (Card view) ──
@@ -239,6 +258,7 @@ export async function exportHologram({
   renderer.setPixelRatio(1)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.NoToneMapping
+  renderer.localClippingEnabled = true // Enable clipping planes
   renderer.setSize(renderSize, renderSize, false)
   renderer.setClearColor(CHROMA_GREEN, 1)
 
@@ -270,6 +290,23 @@ export async function exportHologram({
   const anglePerFrame = (Math.PI * 2) / totalFrames
 
   for (let i = 0; i < totalFrames; i++) {
+    // Rebuild voxels if we have an animation timeline
+    if (frames && frames.length > 1) {
+      const animFrameIndex = i % frames.length
+      const frameVoxels = frames[animFrameIndex] || []
+      
+      // Clear previous voxels
+      while(modelGroup.children.length > 0){ 
+        const child = modelGroup.children[0]
+        modelGroup.remove(child)
+      }
+      
+      // Add new frame voxels
+      for (const voxel of frameVoxels) {
+        modelGroup.add(createHologramVoxel(voxel, clippingPlanes))
+      }
+    }
+
     // Rotate model (turntable)
     turntableGroup.rotation.y = i * anglePerFrame
 
@@ -327,6 +364,23 @@ export async function exportHologram({
         totalFrames,
         fps,
         async (frameIndex) => {
+          // Rebuild voxels if we have an animation timeline
+          if (frames && frames.length > 1) {
+            const animFrameIndex = frameIndex % frames.length
+            const frameVoxels = frames[animFrameIndex] || []
+            
+            // Clear previous voxels
+            while(modelGroup.children.length > 0){ 
+              const child = modelGroup.children[0]
+              modelGroup.remove(child)
+            }
+            
+            // Add new frame voxels
+            for (const voxel of frameVoxels) {
+              modelGroup.add(createHologramVoxel(voxel, clippingPlanes))
+            }
+          }
+
           turntableGroup.rotation.y = frameIndex * anglePerFrame
           renderer.render(scene, camera)
           outputCtx.clearRect(0, 0, outputSize, outputSize)

@@ -34,7 +34,7 @@ export default function TimelinePanel({ onGreenscreenOpen }) {
       <div className="timeline__transport">
         <button
           type="button"
-          className="timeline__btn"
+          className="timeline__btn timeline__btn--desktop"
           onClick={undo}
           disabled={past.length === 0 || isPlaying}
           title="Undo (Ctrl+Z)"
@@ -43,7 +43,7 @@ export default function TimelinePanel({ onGreenscreenOpen }) {
         </button>
         <button
           type="button"
-          className="timeline__btn"
+          className="timeline__btn timeline__btn--desktop"
           onClick={redo}
           disabled={future.length === 0 || isPlaying}
           title="Redo (Ctrl+Y)"
@@ -51,7 +51,7 @@ export default function TimelinePanel({ onGreenscreenOpen }) {
           <Redo2 size={20} strokeWidth={2.5} />
         </button>
         
-        <div className="timeline__divider" />
+        <div className="timeline__divider timeline__divider--desktop" />
 
         <button
           type="button"

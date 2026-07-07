@@ -4,9 +4,10 @@ import {
   canvasToUint8Array,
   encodePngsToMp4,
   recordVideo,
-  downloadBlob,
+  canvasToBlob,
   yieldToBrowser,
 } from './greenscreenExport'
+import { downloadBlob } from './downloadHelper'
 
 function getVoxelBounds(voxels) {
   if (voxels.length === 0) {
@@ -85,7 +86,8 @@ function createCenteredVoxelModel(voxels) {
  * and rotate on their own axes.
  */
 export async function exportOrbitAnimation({
-  models, // array of { voxels, height, radius, spinSpeed, floatOffset }
+  models, // array of { voxels, frames?, height, radius, spinSpeed, floatOffset }
+  clipBackHalf,
   duration,
   fps,
   format,
@@ -116,6 +118,18 @@ export async function exportOrbitAnimation({
   fillLight.position.set(-10, 5, -15)
   scene.add(fillLight)
 
+  // ── Setup Head Mask for compositing ──
+  if (clipBackHalf) {
+    // Create an invisible cylinder that acts as a depth mask.
+    // It writes to the depth buffer but not the color buffer,
+    // so objects orbiting behind it are occluded, but the center
+    // remains transparent (green) for compositing over a real head.
+    const maskGeo = new THREE.CylinderGeometry(10, 10, 60, 32)
+    const maskMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true })
+    const headMask = new THREE.Mesh(maskGeo, maskMat)
+    scene.add(headMask)
+  }
+
   // ── Build models & orbital rig ──
   const masterOrbitGroup = new THREE.Group()
   scene.add(masterOrbitGroup)
@@ -123,7 +137,14 @@ export async function exportOrbitAnimation({
   const animatedItems = []
 
   models.forEach((model, index) => {
-    const meshGroup = createCenteredVoxelModel(model.voxels)
+    // For initial setup, use the first frame if animated, otherwise static voxels
+    const initialVoxels = (model.frames && model.frames.length > 0) ? model.frames[0] : model.voxels
+    const meshGroup = createCenteredVoxelModel(initialVoxels)
+    
+    // Store bounds to maintain consistent scale across animation frames
+    const bounds = getVoxelBounds((model.frames && model.frames.length > 0) ? model.frames.flat() : initialVoxels)
+    const maxDim = Math.max(bounds.size.x, bounds.size.y, bounds.size.z)
+    const scaleFactor = maxDim > 0 ? (TARGET_MODEL_SIZE / maxDim) : 1
     
     const spinGroup = new THREE.Group()
     spinGroup.add(meshGroup)
@@ -146,11 +167,15 @@ export async function exportOrbitAnimation({
     
     animatedItems.push({
       spinGroup,
+      meshGroup,
       pivot,
       spinSpeed: model.spinSpeed || 2, // rotations per export duration
-      floatSpeed: model.floatSpeed || 1, // bobs per export duration
-      floatOffset: model.floatOffset || (index * Math.PI / 2),
-      baseHeight: height
+      floatSpeed: model.floatSpeed || 1, // bobbing cycles per duration
+      floatOffset: model.floatOffset || 0,
+      initialHeight: height,
+      frames: model.frames || null,
+      bounds,
+      scaleFactor,
     })
   })
 
@@ -162,41 +187,60 @@ export async function exportOrbitAnimation({
 
   // ── Renderer setup ──
   const renderCanvas = document.createElement('canvas')
-  renderCanvas.width = outputSize
-  renderCanvas.height = outputSize
-  
   const renderer = new THREE.WebGLRenderer({
     canvas: renderCanvas,
-    antialias: true,
+    antialias: true, // Higher quality for orbit export
     preserveDrawingBuffer: true,
   })
   renderer.setPixelRatio(1)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.NoToneMapping
   renderer.setSize(outputSize, outputSize, false)
+  renderer.setClearColor(CHROMA_GREEN, 1)
 
   // ── Render frames ──
   const pngFrames = []
-  
-  // The master orbit should make exactly one full revolution over the duration
-  const orbitAnglePerFrame = (Math.PI * 2) / totalFrames
 
   for (let i = 0; i < totalFrames; i++) {
-    const timeRatio = i / totalFrames
-    
-    // 1. Revolve all items around the center
-    masterOrbitGroup.rotation.y = - (i * orbitAnglePerFrame)
+    const progressFactor = i / totalFrames
 
-    // 2. Local animations (spin + subtle floating bob)
+    // Master orbit rotates 1 full circle
+    masterOrbitGroup.rotation.y = progressFactor * Math.PI * 2
+
     animatedItems.forEach(item => {
-      // Local spin
-      const localSpinAngle = timeRatio * Math.PI * 2 * item.spinSpeed
-      item.spinGroup.rotation.y = localSpinAngle
-      item.spinGroup.rotation.x = Math.sin(localSpinAngle) * 0.2 // slight tilt wobble
+      // Rebuild voxels for animation frames
+      if (item.frames && item.frames.length > 1) {
+        const animFrameIndex = i % item.frames.length
+        const frameVoxels = item.frames[animFrameIndex] || []
+        
+        while(item.meshGroup.children.length > 0) {
+          item.meshGroup.remove(item.meshGroup.children[0])
+        }
+        
+        const geometry = new THREE.BoxGeometry(1, 1, 1)
+        for (const voxel of frameVoxels) {
+          const mat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(voxel.color || '#ffffff'),
+            roughness: 0.6,
+            metalness: 0.1,
+          })
+          const mesh = new THREE.Mesh(geometry, mat)
+          mesh.position.set(
+            voxel.position[0] - item.bounds.center.x,
+            voxel.position[1] - item.bounds.center.y,
+            voxel.position[2] - item.bounds.center.z
+          )
+          item.meshGroup.add(mesh)
+        }
+        item.meshGroup.scale.setScalar(item.scaleFactor)
+      }
+
+      // Individual spin on its own Y axis
+      item.spinGroup.rotation.y = progressFactor * Math.PI * 2 * item.spinSpeed
       
-      // Local bobbing (sine wave floating effect)
-      const bobTime = timeRatio * Math.PI * 2 * item.floatSpeed + item.floatOffset
-      item.pivot.position.y = item.baseHeight + Math.sin(bobTime) * 3
+      // Bobbing (sine wave offset on Y axis)
+      const bobbing = Math.sin((progressFactor * Math.PI * 2 * item.floatSpeed) + item.floatOffset) * 2
+      item.pivot.position.y = item.initialHeight + bobbing
     })
 
     renderer.render(scene, camera)
@@ -228,15 +272,47 @@ export async function exportOrbitAnimation({
         totalFrames,
         fps,
         async (frameIndex) => {
-          const timeRatio = frameIndex / totalFrames
-          masterOrbitGroup.rotation.y = - (frameIndex * orbitAnglePerFrame)
+          const progressFactor = frameIndex / totalFrames
+
+          // Master orbit rotates 1 full circle
+          masterOrbitGroup.rotation.y = progressFactor * Math.PI * 2
+
           animatedItems.forEach(item => {
-            const localSpinAngle = timeRatio * Math.PI * 2 * item.spinSpeed
-            item.spinGroup.rotation.y = localSpinAngle
-            item.spinGroup.rotation.x = Math.sin(localSpinAngle) * 0.2
-            const bobTime = timeRatio * Math.PI * 2 * item.floatSpeed + item.floatOffset
-            item.pivot.position.y = item.baseHeight + Math.sin(bobTime) * 3
+            // Rebuild voxels for animation frames
+            if (item.frames && item.frames.length > 1) {
+              const animFrameIndex = frameIndex % item.frames.length
+              const frameVoxels = item.frames[animFrameIndex] || []
+              
+              while(item.meshGroup.children.length > 0) {
+                item.meshGroup.remove(item.meshGroup.children[0])
+              }
+              
+              const geometry = new THREE.BoxGeometry(1, 1, 1)
+              for (const voxel of frameVoxels) {
+                const mat = new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(voxel.color || '#ffffff'),
+                  roughness: 0.6,
+                  metalness: 0.1,
+                })
+                const mesh = new THREE.Mesh(geometry, mat)
+                mesh.position.set(
+                  voxel.position[0] - item.bounds.center.x,
+                  voxel.position[1] - item.bounds.center.y,
+                  voxel.position[2] - item.bounds.center.z
+                )
+                item.meshGroup.add(mesh)
+              }
+              item.meshGroup.scale.setScalar(item.scaleFactor)
+            }
+
+            // Individual spin on its own Y axis
+            item.spinGroup.rotation.y = progressFactor * Math.PI * 2 * item.spinSpeed
+            
+            // Bobbing (sine wave offset on Y axis)
+            const bobbing = Math.sin((progressFactor * Math.PI * 2 * item.floatSpeed) + item.floatOffset) * 2
+            item.pivot.position.y = item.initialHeight + bobbing
           })
+
           renderer.render(scene, camera)
         },
         logger,

@@ -7,11 +7,11 @@ import {
   getExportCanvasSize,
   canvasToBlob,
   canvasToUint8Array,
-  downloadBlob,
   encodePngsToMp4,
   recordVideo,
   yieldToBrowser,
 } from './greenscreenExport'
+import { downloadBlob } from './downloadHelper'
 
 function createVoxelMesh(voxel) {
   const mesh = new THREE.Mesh(

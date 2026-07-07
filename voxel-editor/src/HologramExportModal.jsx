@@ -2,16 +2,19 @@ import { useState } from 'react'
 import { useVoxelStore } from './store'
 import { createExportLogger } from './exportLogger'
 import { exportHologram } from './hologramExport'
+import { downloadBlob } from './downloadHelper'
 import './HologramExportModal.css'
 
 export default function HologramExportModal({ onClose }) {
   const voxels = useVoxelStore((s) => s.voxels)
+  const frames = useVoxelStore((s) => s.frames)
 
   const [duration, setDuration] = useState(4)
   const [fps, setFps] = useState(10)
   const [pixelScale, setPixelScale] = useState(4)
   const [cameraAngle, setCameraAngle] = useState('slanted')
   const [format, setFormat] = useState('mp4')
+  const [clipBackHalf, setClipBackHalf] = useState(false)
   const [status, setStatus] = useState('')
   const [progress, setProgress] = useState(0)
   const [exporting, setExporting] = useState(false)
@@ -30,6 +33,8 @@ export default function HologramExportModal({ onClose }) {
     try {
       await exportHologram({
         voxels,
+        frames,
+        clipBackHalf,
         duration,
         fps,
         pixelScale,
@@ -68,12 +73,7 @@ export default function HologramExportModal({ onClose }) {
   const handleDownloadLog = () => {
     if (!exportLog) return
     const blob = new Blob([exportLog], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'hologram-export-log.txt'
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, 'hologram-export-log.txt')
   }
 
   return (
@@ -188,6 +188,21 @@ export default function HologramExportModal({ onClose }) {
                 PNG sequence
               </button>
             </div>
+          </div>
+
+          {/* Compositing */}
+          <div className="holo-field" style={{ marginTop: '4px', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+            <input
+              type="checkbox"
+              id="clipBackHalf"
+              checked={clipBackHalf}
+              onChange={(e) => setClipBackHalf(e.target.checked)}
+              disabled={exporting}
+              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--cmyk-magenta)' }}
+            />
+            <label htmlFor="clipBackHalf" className="holo-field__label" style={{ margin: 0, cursor: 'pointer', textTransform: 'none' }}>
+              Wrap around head (Clip back half)
+            </label>
           </div>
         </div>
 

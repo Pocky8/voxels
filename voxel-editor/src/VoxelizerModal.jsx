@@ -34,17 +34,15 @@ export default function VoxelizerModal({ onClose }) {
     `#${[r, g, b].map((v) => quantizeColor(v).toString(16).padStart(2, '0')).join('')}`
 
   const loadImage = (file) => new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      resolve(img)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error('Could not read that image.'))
+      img.src = reader.result
     }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Could not read that image.'))
-    }
-    img.src = url
+    reader.onerror = () => reject(new Error('Could not read that image.'))
+    reader.readAsDataURL(file)
   })
 
   const processImageData = (imgData, width, height) => {

@@ -216,7 +216,7 @@ export default function App() {
         <Canvas
           camera={{ position: [8, 8, 8], fov: 50 }}
           dpr={[1, 2]}
-          gl={{ antialias: true, toneMapping: 0 }}
+          gl={{ antialias: true, toneMapping: 0, preserveDrawingBuffer: true }}
         >
           <color attach="background" args={['#f4f6f8']} />
 
