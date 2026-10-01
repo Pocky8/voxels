@@ -1,0 +1,17 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+*.local
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+
+# System and IDE
+.DS_Store
+.vscode/
+.idea/

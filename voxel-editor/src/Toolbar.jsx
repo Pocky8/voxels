@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useVoxelStore } from './store'
 import { exportUnityCS, exportGodotGD, exportGLTF } from './exporters'
 import { exportTopDownImage } from './snapshotExport'
-import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, Box, MoreHorizontal, Palette, Trash2, Scan, Camera } from 'lucide-react'
+import { Pencil, Eraser, Repeat, FlipHorizontal, Undo2, Redo2, PenTool, Download, MonitorPlay, MoreHorizontal, Palette, Trash2, Scan, Camera, MessageSquareText, Save, UserRound, Images } from 'lucide-react'
 import './Toolbar.css'
 
 const PALETTE = [
@@ -26,7 +26,7 @@ const PaletteGrid = ({ onPick, activeColor, large }) => (
   </div>
 )
 
-export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen, onHologramOpen, onOrbitOpen }) {
+export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOpen, onMemeEditorOpen, onHologramOpen, onOrbitOpen, user, firebaseReady, onAuthOpen, onSignOut, onSaveOpen, onGalleryOpen }) {
   const voxels      = useVoxelStore(s => s.voxels)
   const activeTool  = useVoxelStore(s => s.activeTool)
   const activeColor = useVoxelStore(s => s.activeColor)
@@ -75,6 +75,7 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
           <div className="sb-brand__text">
             <p className="sb-brand__name">UnFlat</p>
           </div>
+          {firebaseReady && <div className="sb-brand__actions"><button type="button" className="icon-btn" onClick={user ? onSignOut : onAuthOpen} title={user ? 'Sign out' : 'Sign in'}><UserRound size={17} /></button></div>}
         </header>
 
         <div className="sb-section">
@@ -107,6 +108,11 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
           </div>
         </div>
 
+        <div className="sb-section">
+          <p className="sb-label">Cloud</p>
+          {!firebaseReady ? <p className="feat-btn__sub">Add Firebase settings to enable saving.</p> : user ? <><button type="button" className="feat-btn feat-btn--primary" onClick={onSaveOpen}><span className="feat-btn__icon"><Save size={20} /></span><span className="feat-btn__body"><span className="feat-btn__title">Save creation</span><span className="feat-btn__sub">{user.email}</span></span></button><button type="button" className="feat-btn" onClick={onGalleryOpen}><span className="feat-btn__icon"><Images size={20} /></span><span className="feat-btn__body"><span className="feat-btn__title">My gallery</span><span className="feat-btn__sub">Load saved voxel art</span></span></button></> : <button type="button" className="feat-btn feat-btn--primary" onClick={onAuthOpen}><span className="feat-btn__icon"><UserRound size={20} /></span><span className="feat-btn__body"><span className="feat-btn__title">Sign in to save</span><span className="feat-btn__sub">Keep creations in your gallery</span></span></button>}
+        </div>
+
         {/* ── Color ── */}
         <div className="sb-section">
           <p className="sb-label">
@@ -130,6 +136,13 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
             <span className="feat-btn__body">
               <span className="feat-btn__title">Sketch to Voxel</span>
               <span className="feat-btn__sub">Draw and convert to 3D</span>
+            </span>
+          </button>
+          <button type="button" className="feat-btn" onClick={onMemeEditorOpen}>
+            <span className="feat-btn__icon"><MessageSquareText size={20} strokeWidth={2.5} /></span>
+            <span className="feat-btn__body">
+              <span className="feat-btn__title">Meme Editor</span>
+              <span className="feat-btn__sub">Templates and text bubbles</span>
             </span>
           </button>
           <button type="button" className="feat-btn" onClick={onVoxelizerOpen}>
@@ -266,6 +279,14 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
               </span>
             </button>
             <button type="button" className="feat-btn"
+              onClick={() => { onMemeEditorOpen(); setMoreOpen(false) }}>
+              <span className="feat-btn__icon"><MessageSquareText size={18} strokeWidth={2.5} /></span>
+              <span className="feat-btn__body">
+                <span className="feat-btn__title">Meme Editor</span>
+                <span className="feat-btn__sub">Templates and text bubbles</span>
+              </span>
+            </button>
+            <button type="button" className="feat-btn"
               onClick={() => { onVoxelizerOpen(); setMoreOpen(false) }}>
               <span className="feat-btn__icon"><Download size={18} strokeWidth={2.5} /></span>
               <span className="feat-btn__body">
@@ -273,6 +294,9 @@ export default function Toolbar({ onVoxelizerOpen, onGreenscreenOpen, onSketchOp
                 <span className="feat-btn__sub">From image or mesh</span>
               </span>
             </button>
+
+            <p className="sheet__sec">Cloud</p>
+            {!firebaseReady ? <p className="feat-btn__sub">Add Firebase settings to enable saving.</p> : user ? <><button type="button" className="act-btn act-btn--accent" onClick={() => { onSaveOpen(); setMoreOpen(false) }}>Save creation</button><button type="button" className="act-btn" onClick={() => { onGalleryOpen(); setMoreOpen(false) }}>My gallery</button></> : <button type="button" className="act-btn act-btn--accent" onClick={() => { onAuthOpen(); setMoreOpen(false) }}>Sign in to save</button>}
 
             <p className="sheet__sec">Export</p>
             <button className="act-btn act-btn--yellow"

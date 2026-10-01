@@ -7,10 +7,16 @@ import SceneControls from './SceneControls'
 import ExportCapture from './ExportCapture'
 import Toolbar from './Toolbar'
 import TimelinePanel from './TimelinePanel'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth, isFirebaseConfigured } from './firebase'
 
 const VoxelizerModal = lazy(() => import('./VoxelizerModal'))
 const GreenscreenExportModal = lazy(() => import('./GreenscreenExportModal'))
 const SketchModal = lazy(() => import('./SketchModal'))
+const MemeEditorModal = lazy(() => import('./MemeEditorModal'))
+const AuthModal = lazy(() => import('./AuthModal'))
+const SaveCreationModal = lazy(() => import('./SaveCreationModal'))
+const GalleryModal = lazy(() => import('./GalleryModal'))
 const HologramExportModal = lazy(() => import('./HologramExportModal'))
 const OrbitExportModal = lazy(() => import('./OrbitExportModal'))
 
@@ -31,18 +37,29 @@ export default function App() {
   const stopPlayback = useVoxelStore((s) => s.stopPlayback)
   const undo = useVoxelStore((s) => s.undo)
   const redo = useVoxelStore((s) => s.redo)
+  const loadCreation = useVoxelStore((s) => s.loadCreation)
 
   const [showVoxelizer, setShowVoxelizer] = useState(false)
   const [showGreenscreen, setShowGreenscreen] = useState(false)
   const [showSketch, setShowSketch] = useState(false)
+  const [showMemeEditor, setShowMemeEditor] = useState(false)
   const [showHologram, setShowHologram] = useState(false)
   const [showOrbit, setShowOrbit] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const [showSave, setShowSave] = useState(false)
+  const [showGallery, setShowGallery] = useState(false)
+  const [user, setUser] = useState(null)
   const [isCoarsePointer, setIsCoarsePointer] = useState(
     () => window.matchMedia('(pointer: coarse)').matches
   )
   const floorDragPaintRef = useRef(false)
   const lastFloorCellRef = useRef(null)   // { x, z } integer cell coords
   const exportCaptureRef = useRef(null)
+
+  useEffect(() => {
+    if (!auth) return undefined
+    return onAuthStateChanged(auth, setUser)
+  }, [])
 
   const gridSize = useMemo(() => {
     const gridExtent = Math.max(
@@ -205,8 +222,15 @@ export default function App() {
         onVoxelizerOpen={() => setShowVoxelizer(true)}
         onGreenscreenOpen={() => setShowGreenscreen(true)}
         onSketchOpen={() => setShowSketch(true)}
+        onMemeEditorOpen={() => setShowMemeEditor(true)}
         onHologramOpen={() => setShowHologram(true)}
         onOrbitOpen={() => setShowOrbit(true)}
+        user={user}
+        firebaseReady={isFirebaseConfigured}
+        onAuthOpen={() => setShowAuth(true)}
+        onSignOut={() => signOut(auth)}
+        onSaveOpen={() => user ? setShowSave(true) : setShowAuth(true)}
+        onGalleryOpen={() => user ? setShowGallery(true) : setShowAuth(true)}
       />
       <TimelinePanel 
         onGreenscreenOpen={() => setShowGreenscreen(true)}
@@ -292,6 +316,15 @@ export default function App() {
           <SketchModal onClose={() => setShowSketch(false)} />
         </Suspense>
       )}
+
+      {showMemeEditor && (
+        <Suspense fallback={null}>
+          <MemeEditorModal onClose={() => setShowMemeEditor(false)} />
+        </Suspense>
+      )}
+      {showAuth && isFirebaseConfigured && <Suspense fallback={null}><AuthModal onClose={() => setShowAuth(false)} /></Suspense>}
+      {showSave && user && <Suspense fallback={null}><SaveCreationModal user={user} frames={frames} fps={fps} onClose={() => setShowSave(false)} /></Suspense>}
+      {showGallery && user && <Suspense fallback={null}><GalleryModal user={user} onClose={() => setShowGallery(false)} onLoad={(creation) => { loadCreation(creation.frames, creation.fps); setShowGallery(false) }} /></Suspense>}
 
       {showGreenscreen && (
         <Suspense fallback={null}>

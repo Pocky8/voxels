@@ -208,6 +208,14 @@ export const useVoxelStore = create((set, get) => ({
     )
   },
 
+  loadCreation: (framesData, fps) =>
+    set(() => {
+      const frames = cloneFrames(framesData?.length ? framesData : [[]])
+      const voxels = cloneVoxels(frames[0])
+      updateNextId(voxels)
+      return { frames, currentFrame: 0, voxels, fps: Number(fps) || DEFAULT_FPS, isPlaying: false, past: [], future: [] }
+    }),
+
   clearCanvas: () =>
     set((state) => {
       if (state.voxels.length === 0) return state
